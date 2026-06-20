@@ -61,6 +61,9 @@ interface TaskMetadata {
   sessionId: string
   taskId?: string
   background?: boolean
+  status?: string
+  result?: string
+  error?: string
 }
 
 const SYNC_TIMEOUT_S = 300
@@ -74,6 +77,31 @@ async function bindDagNode(sessionID: string, nodeID: string | undefined, task: 
   node.task_id = task.id
   node.session_id = task.sessionID
   await Dag.update({ sessionID, nodes })
+}
+
+export function formatTaskResult(task: {
+  id: string
+  sessionID: string
+  status: string
+  result?: string
+  error?: string
+  progress?: { lastMessage?: string }
+}): string {
+  const success = task.status === "completed"
+  const finalMessage = success ? (task.result ?? task.progress?.lastMessage ?? "") : (task.error ?? task.result ?? "")
+  const lines = [
+    "<task_result>",
+    `task_id: ${task.id}`,
+    `session_id: ${task.sessionID}`,
+    `status: ${success ? "success" : task.status}`,
+    finalMessage ? "final_message:" : "final_message: <empty>",
+    finalMessage ? finalMessage : undefined,
+    !success && task.error ? "error:" : undefined,
+    !success && task.error ? task.error : undefined,
+    "</task_result>",
+  ].filter((line): line is string => line !== undefined)
+
+  return lines.join("\n")
 }
 
 export const TaskTool = Tool.define<typeof parameters, TaskMetadata>("task", async (ctx) => {
@@ -270,16 +298,18 @@ Use \`task_output(task_id="${task.id}", mode="tail")\` to inspect recent activit
             title: part.state.status === "completed" ? part.state.title : undefined,
           },
         }))
-      const text = completed.result ?? ""
-      const output = text + "\n\n" + ["<task_metadata>", `session_id: ${task.sessionID}`, "</task_metadata>"].join("\n")
+      const output = formatTaskResult(completed)
 
       return {
         title: params.description,
         metadata: {
           summary,
           sessionId: task.sessionID,
-          taskId: undefined,
+          taskId: task.id,
           background: false,
+          status: completed.status,
+          result: completed.result,
+          error: completed.error,
         },
         output,
       }

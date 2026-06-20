@@ -4,6 +4,9 @@ import { ExternalAgent } from "../bridge"
 const log = Log.create({ service: "external-agent.codex" })
 
 type QueueEntry = { event: ExternalAgent.BridgeEvent } | { done: true }
+type DiscoveryResult = { available: boolean; path?: string; version?: string }
+
+const DISCOVERY_CACHE_MS = 30_000
 
 const BASE_ENV_ALLOWLIST = new Set([
   "PATH",
@@ -94,10 +97,22 @@ class CodexAdapter implements ExternalAgent.Adapter {
   private env: Record<string, string | undefined> = {}
   private stderrBuffer = ""
   private gotStdoutEvents = false
+  private discoveryCache:
+    | {
+        key: string
+        expiresAt: number
+        result: DiscoveryResult
+      }
+    | undefined
 
-  async discover(): Promise<{ available: boolean; path?: string; version?: string }> {
-    const binPath = Bun.which("codex")
+  async discover(): Promise<DiscoveryResult> {
+    const binPath = this.resolvedCommandPath()
     if (!binPath) return { available: false }
+
+    const cached = this.discoveryCache
+    if (cached && cached.key === binPath && cached.expiresAt > Date.now()) {
+      return { ...cached.result }
+    }
 
     try {
       const proc = Bun.spawn([binPath, "--version"], {
@@ -107,10 +122,10 @@ class CodexAdapter implements ExternalAgent.Adapter {
       const text = await new Response(proc.stdout).text()
       await proc.exited
       const version = text.trim().split("\n")[0] || undefined
-      return { available: true, path: binPath, version }
+      return this.cacheDiscovery(binPath, { available: true, path: binPath, version })
     } catch (e) {
       log.warn("version check failed", { error: String(e) })
-      return { available: true, path: binPath }
+      return this.cacheDiscovery(binPath, { available: true, path: binPath })
     }
   }
 
@@ -257,9 +272,22 @@ class CodexAdapter implements ExternalAgent.Adapter {
   }
 
   private commandPath(): string {
+    return this.resolvedCommandPath() ?? "codex"
+  }
+
+  private resolvedCommandPath(): string | undefined {
     const configured = this.adapterConfig.path
     if (typeof configured === "string" && configured.trim()) return configured
-    return "codex"
+    return Bun.which("codex") ?? undefined
+  }
+
+  private cacheDiscovery(binPath: string, result: DiscoveryResult): DiscoveryResult {
+    this.discoveryCache = {
+      key: binPath,
+      expiresAt: Date.now() + DISCOVERY_CACHE_MS,
+      result,
+    }
+    return { ...result }
   }
 
   private readStdout(proc: import("bun").Subprocess<"pipe", "pipe", "pipe">): void {

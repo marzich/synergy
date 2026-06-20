@@ -93,3 +93,46 @@ describe("Codex external adapter CLI args", () => {
     expect(args).not.toContain("--sandbox")
   })
 })
+
+
+describe("Codex external adapter discovery", () => {
+  test("uses configured path for discovery and caches version checks", async () => {
+    const originalSpawn = Bun.spawn
+    const originalWhich = Bun.which
+    const spawnCalls: string[][] = []
+    let whichCalls = 0
+
+    try {
+      ;(Bun as any).which = (name: string) => {
+        whichCalls++
+        return `/usr/bin/${name}`
+      }
+      ;(Bun as any).spawn = (args: string[]) => {
+        spawnCalls.push(args)
+        return {
+          stdout: new Response("codex-cli 0.141.0\n").body,
+          stderr: new Response("").body,
+          exited: Promise.resolve(0),
+        }
+      }
+
+      const adapter = ExternalAgent.getAdapter("codex", `codex-test-${Date.now()}-discovery`) as any
+      await adapter.start({
+        cwd: "/tmp/synergy-test",
+        config: { path: "/home/test/.local/bin/codex" },
+      })
+
+      const first = await adapter.discover()
+      const second = await adapter.discover()
+
+      expect(first).toEqual({ available: true, path: "/home/test/.local/bin/codex", version: "codex-cli 0.141.0" })
+      expect(second).toEqual(first)
+      expect(spawnCalls).toHaveLength(1)
+      expect(spawnCalls[0]).toEqual(["/home/test/.local/bin/codex", "--version"])
+      expect(whichCalls).toBe(0)
+    } finally {
+      ;(Bun as any).spawn = originalSpawn
+      ;(Bun as any).which = originalWhich
+    }
+  })
+})

@@ -1951,6 +1951,42 @@ describe("EnforcementGate shell_hardline in gate", () => {
     expect(hardline.nonBypassable).toBe(true)
   })
 
+
+  test("bash with Synergy self-restart returns shell_hardline capability", () => {
+    const { EnforcementGate } = require("../../src/enforcement/gate")
+    const gate = EnforcementGate.create({
+      activeWorkspace: "/Users/test/synergy-control-profile",
+      workspaceType: "worktree",
+    })
+    const result = gate.classify("bash", { command: "systemctl --user restart synergy-dev.service" })
+    const hardline = result.capabilities.find((c: any) => c.class === "shell_hardline")
+    expect(hardline).toBeDefined()
+    expect(hardline.nonBypassable).toBe(true)
+  })
+
+  test("bash with Synergy self-restart evaluates to deny for autonomous profile", () => {
+    const { EnforcementGate } = require("../../src/enforcement/gate")
+    const gate = EnforcementGate.create({
+      activeWorkspace: "/Users/test/synergy-control-profile",
+      workspaceType: "worktree",
+      profileId: "autonomous",
+    })
+    const envelope = gate.evaluate("bash", { command: "systemctl --user stop synergy-dev.service" })
+    expect(envelope.decision).toBe("deny")
+    expect(envelope.refusal?.matchedPermission).toBe("shell_hardline")
+  })
+
+  test("bash with Synergy status is not a hardline command", () => {
+    const { EnforcementGate } = require("../../src/enforcement/gate")
+    const gate = EnforcementGate.create({
+      activeWorkspace: "/Users/test/synergy-control-profile",
+      workspaceType: "worktree",
+    })
+    const result = gate.classify("bash", { command: "systemctl --user status synergy-dev.service" })
+    const hardline = result.capabilities.find((c: any) => c.class === "shell_hardline")
+    expect(hardline).toBeUndefined()
+  })
+
   test("bash with mkfs /dev/sda1 evaluates to deny for autonomous profile", () => {
     const { EnforcementGate } = require("../../src/enforcement/gate")
     const gate = EnforcementGate.create({
