@@ -94,7 +94,6 @@ describe("Codex external adapter CLI args", () => {
   })
 })
 
-
 describe("Codex external adapter discovery", () => {
   test("uses configured path for discovery and caches version checks", async () => {
     const originalSpawn = Bun.spawn

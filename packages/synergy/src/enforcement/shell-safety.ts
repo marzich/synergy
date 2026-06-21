@@ -351,10 +351,14 @@ const HARDLINE_PREFIXES = [
 
 const HARDLINE_EXACTS = ["init 0", "init 6", "telinit 0", "telinit 6"]
 
-const SYNERGY_SELF_SYSTEMCTL_RE = /(?:^|[\s;&|])systemctl\s+--user\s+(?:--no-pager\s+)?(?:restart|stop|disable|kill)\s+(?:--now\s+)?synergy-dev(?:\.service)?\b/
-const SYNERGY_SELF_SERVICE_RE = /(?:^|[\s;&|])service\s+synergy-dev(?:\.service)?\s+(?:restart|stop|disable|kill)\b|(?:^|[\s;&|])service\s+(?:restart|stop|disable|kill)\s+synergy-dev(?:\.service)?\b/
-const SYNERGY_SELF_PKILL_RE = /(?:^|[\s;&|])(?:pkill|killall)\b[^;&|]*(?:synergy-dev|synergy\/src\/index\.ts|packages\/synergy|start-synergy-dev|max-systemd)/
-const SYNERGY_SELF_KILL_SUBSHELL_RE = /(?:^|[\s;&|])kill\b[^;&|]*(?:systemctl\s+--user\s+show\s+synergy-dev(?:\.service)?|pgrep\b[^;&|]*(?:synergy-dev|synergy\/src\/index\.ts|packages\/synergy|start-synergy-dev|max-systemd)|synergy-dev|synergy\/src\/index\.ts|packages\/synergy|start-synergy-dev|max-systemd)/
+const SYNERGY_SELF_SYSTEMCTL_RE =
+  /(?:^|[\s;&|])systemctl\s+--user\s+(?:--no-pager\s+)?(?:restart|stop|disable|kill)\s+(?:--now\s+)?synergy-dev(?:\.service)?\b/
+const SYNERGY_SELF_SERVICE_RE =
+  /(?:^|[\s;&|])service\s+synergy-dev(?:\.service)?\s+(?:restart|stop|disable|kill)\b|(?:^|[\s;&|])service\s+(?:restart|stop|disable|kill)\s+synergy-dev(?:\.service)?\b/
+const SYNERGY_SELF_PKILL_RE =
+  /(?:^|[\s;&|])(?:pkill|killall)\b[^;&|]*(?:synergy-dev|synergy\/src\/index\.ts|packages\/synergy|start-synergy-dev|max-systemd)/
+const SYNERGY_SELF_KILL_SUBSHELL_RE =
+  /(?:^|[\s;&|])kill\b[^;&|]*(?:systemctl\s+--user\s+show\s+synergy-dev(?:\.service)?|pgrep\b[^;&|]*(?:synergy-dev|synergy\/src\/index\.ts|packages\/synergy|start-synergy-dev|max-systemd)|synergy-dev|synergy\/src\/index\.ts|packages\/synergy|start-synergy-dev|max-systemd)/
 
 const ARGUMENT_INJECTION_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
   { pattern: /\bfind\b.*(?:-exec(?:dir)?|-ok|-delete)\b/, reason: "find with command execution or deletion" },

@@ -1951,7 +1951,6 @@ describe("EnforcementGate shell_hardline in gate", () => {
     expect(hardline.nonBypassable).toBe(true)
   })
 
-
   test("bash with Synergy self-restart returns shell_hardline capability", () => {
     const { EnforcementGate } = require("../../src/enforcement/gate")
     const gate = EnforcementGate.create({
