@@ -20,7 +20,11 @@ function numberValue(value: unknown): number | undefined {
   return undefined
 }
 
-export function blueprintNoteWriteFocusRequest(part: Part, sessionID: string): BlueprintNoteFocusRequest | undefined {
+function resolveBlueprintNoteRequest(
+  part: Part,
+  sessionID: string,
+  includeReplacements: boolean,
+): BlueprintNoteFocusRequest | undefined {
   if (part.sessionID !== sessionID) return undefined
   if (part.type !== "tool") return undefined
   if (part.tool !== "note_write") return undefined
@@ -30,6 +34,7 @@ export function blueprintNoteWriteFocusRequest(part: Part, sessionID: string): B
   const input = part.state.input ?? {}
   const action = stringValue(metadata.action) ?? stringValue(input.mode) ?? "create"
   if (action !== "create" && action !== "replace") return undefined
+  if (action === "replace" && !includeReplacements) return undefined
 
   const runCount = numberValue(metadata.runCount)
   if (runCount !== undefined && runCount > 0) return undefined
@@ -46,6 +51,10 @@ export function blueprintNoteWriteFocusRequest(part: Part, sessionID: string): B
     runCount,
     scopeID: stringValue(metadata.scopeID),
   }
+}
+
+export function blueprintNoteCreateFocusRequest(part: Part, sessionID: string): BlueprintNoteFocusRequest | undefined {
+  return resolveBlueprintNoteRequest(part, sessionID, false)
 }
 
 export type PlanBlueprintOffer = {
@@ -68,6 +77,7 @@ export type PlanBlueprintOfferEvent =
   | { type: "muted" }
   | { type: "equipped"; key: string }
   | { type: "plan_exited" }
+  | { type: "session_removed" }
 
 export const emptyPlanBlueprintOfferState: PlanBlueprintOfferState = {
   offer: null,
@@ -90,7 +100,7 @@ export function createPlanBlueprintOfferFromPart(input: {
 }): PlanBlueprintOffer | undefined {
   if (input.workflowKind !== "plan") return undefined
 
-  const request = blueprintNoteWriteFocusRequest(input.part, input.sessionID)
+  const request = resolveBlueprintNoteRequest(input.part, input.sessionID, true)
   if (!request) return undefined
 
   return {
@@ -124,6 +134,8 @@ export function reducePlanBlueprintOfferState(
       if (state.offer?.key !== event.key) return state
       return { ...state, offer: null }
     case "plan_exited":
+      return { ...state, offer: null, muted: false }
+    case "session_removed":
       return emptyPlanBlueprintOfferState
   }
 }

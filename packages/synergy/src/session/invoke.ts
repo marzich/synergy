@@ -29,16 +29,19 @@ import { NamedError } from "@ericsanchezok/synergy-util/error"
 import { fn } from "@/util/fn"
 import { SessionProcessor } from "./processor"
 import { SessionMemoryPressure } from "./memory-pressure"
+import { SessionMemoryIncident } from "./memory-incident"
 import { ExternalAgentProcessor } from "@/external-agent/processor"
 import { ExternalAgent } from "@/external-agent/bridge"
 import { withPreambleSection } from "@/agent/prompt/preamble"
 import { SessionManager } from "./manager"
 import { SessionMessageCache } from "./message-cache"
+import { LLMTurnMemory } from "./llm-memory"
 import { SessionInbox } from "./inbox"
 import { SessionHistory } from "./history"
 import { TimeoutConfig } from "@/util/timeout-config"
 import { ToolResolver } from "./tool-resolver"
 import { PromptBudgeter } from "./prompt-budgeter"
+import { ContextUsage } from "./context-usage"
 import { PermissionNext } from "@/permission/next"
 import { ControlProfileCompiler } from "@/control-profile/compiler"
 import { buildPermissionContext } from "./permission-context"
@@ -88,6 +91,7 @@ globalThis.AI_SDK_LOG_WARNINGS = false
 export namespace SessionInvoke {
   const log = Log.create({ service: "session.invoke" })
   const ephemeralToolsByMessage = new Map<string, ToolResolver.EphemeralTool[]>()
+  const maxOutputTokensByMessage = new Map<string, number>()
 
   async function commandRuntime() {
     return (await import("../command/command")).Command
@@ -124,6 +128,7 @@ export namespace SessionInvoke {
 
   type InternalInvokeInput = InvokeInput & {
     ephemeralTools?: ToolResolver.EphemeralTool[]
+    maxOutputTokens?: number
   }
 
   async function invokeWithInternalTools(input: InternalInvokeInput) {
@@ -132,6 +137,7 @@ export namespace SessionInvoke {
       if (input.ephemeralTools?.length) {
         ephemeralToolsByMessage.set(message.info.id, input.ephemeralTools)
       }
+      if (input.maxOutputTokens) maxOutputTokensByMessage.set(message.info.id, input.maxOutputTokens)
 
       await Session.update(input.sessionID, (draft) => {
         draft.pendingReply = input.noReply !== true || undefined
@@ -139,11 +145,12 @@ export namespace SessionInvoke {
 
       if (input.noReply === true) {
         ephemeralToolsByMessage.delete(message.info.id)
+        maxOutputTokensByMessage.delete(message.info.id)
         return message
       }
 
       try {
-        return await loopBody(input.sessionID, lease)
+        return await loopBodyWithIncident(input.sessionID, lease)
       } catch (error) {
         await writeErrorAssistantIfMissing(input.sessionID, message.info as MessageV2.User, error).catch((err) => {
           log.error("failed to persist invocation error", { sessionID: input.sessionID, error: err })
@@ -151,6 +158,7 @@ export namespace SessionInvoke {
         throw error
       } finally {
         ephemeralToolsByMessage.delete(message.info.id)
+        maxOutputTokensByMessage.delete(message.info.id)
       }
     })
   }
@@ -203,11 +211,24 @@ export namespace SessionInvoke {
         runtime.waiters.push({ onComplete, onCancel })
       })
     }
-    return SessionManager.run(sessionID, (runLease) => loopBody(sessionID, runLease), {
+    return SessionManager.run(sessionID, (runLease) => loopBodyWithIncident(sessionID, runLease), {
       lease,
       requestNextWorkOnFailure: false,
     })
   })
+
+  async function loopBodyWithIncident(sessionID: string, lease: SessionManager.LoopLease) {
+    try {
+      return await loopBody(sessionID, lease)
+    } catch (error) {
+      if (SessionMemoryIncident.isOutOfMemory(error) && !(error instanceof MessageV2.SessionTerminalError)) {
+        await SessionMemoryIncident.capture({ error, sessionID }).catch((incidentError) => {
+          log.warn("failed to capture OOM incident", { error: incidentError })
+        })
+      }
+      throw error
+    }
+  }
 
   async function loopBody(sessionID: string, lease: SessionManager.LoopLease): Promise<MessageV2.WithParts> {
     ContinuationKernel.init()
@@ -626,7 +647,7 @@ export namespace SessionInvoke {
             systemParts.push(`<light-loop-context>
 You are running in the Light Loop workflow. The user has set a task that you must complete fully before stopping.
 
-Task: ${session.workflow.taskDescription}
+Task: ${session.workflow.instructions}
 
 Autonomously advance the task until it is complete. Before calling loop_stop(), carefully assess whether every aspect of the task has been addressed:
 - Have you produced all requested deliverables, artifacts, or changes?
@@ -718,13 +739,26 @@ loop_stop() does not end the Light Loop directly — a reviewer will audit your 
             )
           }
         }
+        using memoryTurn = LLMTurnMemory.begin({
+          sessionID,
+          messageID: processor.message.id,
+          providerID: model.providerID,
+          modelID: model.id,
+          historyBeforeBytes: LLMTurnMemory.estimateBytes(sessionMessages),
+          baseline: SessionMemoryPressure.currentSnapshot(),
+        })
+        await memoryTurn.stabilizeBeforeProjection()
         let modelSessionMessages = WorkflowUserWrapper.projectMessages({
           messages: sessionMessages,
           session,
           agent,
         })
+        const modelProjection = MessageV2.projectModelMessages(modelSessionMessages, {
+          maxHistoryImages: jobCtx.compactionMaxHistoryImages,
+        })
+        memoryTurn.projected({ historyAfterBytes: LLMTurnMemory.estimateBytes(modelProjection.messages) })
         let preparedMessages = [
-          ...MessageV2.toModelMessage(modelSessionMessages, { maxHistoryImages: jobCtx.compactionMaxHistoryImages }),
+          ...modelProjection.messages,
           ...(isLastStep
             ? [
                 {
@@ -810,21 +844,71 @@ loop_stop() does not end the Light Loop directly — a reviewer will audit your 
         toolResolveTimer.stop()
         if (!resolvedTools) break
 
+        const plannedHistoryProvenance = ContextUsage.remapProvenance(
+          promptPlan.messages,
+          ContextUsage.buildProvenance({
+            history: modelProjection.provenance,
+            toolDefinitions: [],
+            instructions: isLastStep ? [MAX_STEPS] : [],
+          }),
+        )
+        const activeToolIDs = new Set(resolvedTools.activeToolIDs)
+        const activeToolDefinitions = promptPlan.toolDefinitions.filter((definition) =>
+          activeToolIDs.has(definition.id),
+        )
+        const contextUsageProvenance = ContextUsage.buildProvenance({
+          history: plannedHistoryProvenance,
+          toolDefinitions: activeToolDefinitions,
+        })
+        const toolSchemaBytes = LLMTurnMemory.estimateBytes(activeToolDefinitions)
+        memoryTurn.prepared({
+          toolSchemaBytes,
+          requestBytes: LLMTurnMemory.estimateBytes({
+            system: promptPlan.system,
+            lateSystem: promptPlan.lateSystem,
+            messages: promptPlan.messages,
+            tools: activeToolDefinitions,
+          }),
+        })
+
         let streamInput: LLM.StreamInput | undefined
         function releaseTurnReferences(mutateStreamInput: boolean) {
+          if (mutateStreamInput) {
+            toolDefinitions.length = 0
+            systemParts.length = 0
+            lateSystemParts.length = 0
+            modelSessionMessages.length = 0
+            modelProjection.messages.length = 0
+            for (const contributions of Object.values(modelProjection.provenance.categories)) {
+              contributions.length = 0
+            }
+            preparedMessages.length = 0
+            promptPlan?.system.splice(0)
+            promptPlan?.lateSystem?.splice(0)
+            promptPlan?.messages.splice(0)
+            promptPlan?.toolDefinitions.splice(0)
+            resolvedTools?.activeToolIDs.splice(0)
+            if (resolvedTools) {
+              for (const id of Object.keys(resolvedTools.tools)) delete resolvedTools.tools[id]
+            }
+            activeToolIDs.clear()
+            for (const provenance of [plannedHistoryProvenance, contextUsageProvenance]) {
+              for (const contributions of Object.values(provenance.categories)) contributions.length = 0
+            }
+            if (streamInput) {
+              streamInput.system.splice(0)
+              streamInput.lateSystem?.splice(0)
+              streamInput.messages.splice(0)
+              for (const id of Object.keys(streamInput.tools)) delete streamInput.tools[id]
+              streamInput.activeToolIDs?.splice(0)
+            }
+          }
           toolDefinitions = []
           systemParts = []
           lateSystemParts = []
           modelSessionMessages = []
           preparedMessages = []
           promptDecision = undefined
-          if (mutateStreamInput && streamInput) {
-            streamInput.system = []
-            streamInput.lateSystem = undefined
-            streamInput.messages = []
-            streamInput.tools = {}
-            streamInput.activeToolIDs = undefined
-          }
           promptPlan = undefined
           resolvedTools = undefined
           streamInput = undefined
@@ -879,6 +963,9 @@ loop_stop() does not end the Light Loop directly — a reviewer will audit your 
           tools: resolvedTools.tools,
           activeToolIDs: resolvedTools.activeToolIDs,
           model,
+          contextUsageProvenance,
+          maxOutputTokens: maxOutputTokensByMessage.get(R.id),
+          memoryTurn,
         }
         try {
           const currentStreamInput = streamInput
@@ -1001,10 +1088,10 @@ loop_stop() does not end the Light Loop directly — a reviewer will audit your 
       }
 
       if (processedRootID) {
-        const messages = await Session.messages({ sessionID })
+        const messages = await SessionHistory.modelMessages({ sessionID })
         const terminalReply = SessionProgress.findTerminalReply(messages, processedRootID)
-        if (terminalReply && terminalReply.info.id !== previousTerminalReplyID) {
-          await Session.recordCompletionNotice(sessionID)
+        if (terminalReply?.info.role === "assistant" && terminalReply.info.id !== previousTerminalReplyID) {
+          await Session.recordCompletionNotice(sessionID, { publishEvent: !terminalReply.info.error })
         }
       }
 
@@ -1126,6 +1213,16 @@ loop_stop() does not end the Light Loop directly — a reviewer will audit your 
     const message = input.processor.message
     if (message.time.completed != null) return
 
+    if (SessionMemoryIncident.isOutOfMemory(input.error)) {
+      await SessionMemoryIncident.capture({
+        error: input.error,
+        sessionID: input.sessionID,
+        messageID: message.id,
+      }).catch((incidentError) => {
+        log.warn("failed to capture OOM incident", { error: incidentError })
+      })
+    }
+
     message.error = MessageV2.fromError(input.error, { providerID: input.model.providerID })
     message.finish = "error"
     message.time.completed = Date.now()
@@ -1188,7 +1285,7 @@ loop_stop() does not end the Light Loop directly — a reviewer will audit your 
     await Session.update(sessionID, (draft) => {
       draft.pendingReply = undefined
     })
-    await Session.recordCompletionNotice(sessionID)
+    await Session.recordCompletionNotice(sessionID, { publishEvent: false })
     Bus.publish(SessionEvent.Error, { sessionID, error: assistant.error })
     Session.updateLastExchange(sessionID).catch((err) =>
       log.warn("failed to update lastExchange", { sessionID, error: err }),
@@ -1821,18 +1918,12 @@ loop_stop() does not end the Light Loop directly — a reviewer will audit your 
 
       if (!pendingReply) continue
 
-      // Auto-repair: if a session has pendingReply but the latest assistant
-      // message is incomplete (time.completed == null) and no runtime is
-      // active, repair it so working.ts stops reporting "recovering".
-      const latestAssistant = messages.find((m) => m.info.role === "assistant")?.info as MessageV2.Assistant | undefined
-      if (latestAssistant && latestAssistant.time.completed == null && !SessionManager.isRunning(sessionID)) {
-        log.info("pending reply found with incomplete assistant; auto-repairing", { sessionID })
-        // Startup reconciliation persists state only; connected clients recover
-        // from the subsequent status snapshot rather than a lifecycle event.
-        await repairIncompleteAssistant(sessionID).catch((err) => {
-          log.error("auto-repair failed", { sessionID, error: err })
-        })
-        continue
+      if (!SessionManager.isRunning(sessionID)) {
+        const repaired = await repairAfterAbort(sessionID)
+        if (repaired) {
+          log.info("repaired incomplete assistant during startup recovery", { sessionID })
+          continue
+        }
       }
 
       log.info("pending reply found; automatic assistant resume is disabled", { sessionID })

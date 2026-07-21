@@ -19,7 +19,7 @@ Read the [product overview](docs/product/overview.md) for the complete product m
 - Browse project files through the Side Workspace file workbench with a virtualized Explorer, multi-file tabs, and source or preview modes.
 - Work with the same session-owned Browser page from the UI and browser tools.
 - Connect external messaging through Channels, mail through governed Email tools, and remote agents or hosts through Holos and Synergy Link.
-- Manage Clarus projects, task assignments, and project activity through the Holos agent tunnel.
+- Use Clarus projects as standard Synergy Project Scopes and Sessions through the Channel system.
 - Extend tools, agents, skills, commands, MCP servers, configuration, hooks, and product UI with plugins.
 
 Long sessions use compaction to replace older model context with a continuation summary while preserving the complete durable session history.
@@ -45,6 +45,8 @@ Download a platform installer from [GitHub Releases](https://github.com/SII-Holo
 
 The recommended installers include the Desktop app and expose its packaged runtime as the `synergy` CLI. Portable artifacts are also published but do not configure a system CLI.
 
+Released packages do not require Rust. Rust is used only to build the Linux and Windows sandbox helpers. The Linux `.deb` installs Bubblewrap as a package dependency; Linux portable and CLI archive users must install `bubblewrap` with their system package manager. Windows Desktop and CLI releases currently support x64.
+
 ### CLI and Web
 
 Install the current release:
@@ -60,6 +62,8 @@ curl -fsSL https://raw.githubusercontent.com/SII-Holos/synergy/main/install | ba
 ```
 
 The CLI installer places the runtime, Web UI, and schema assets under `~/.synergy/`. It does not install the Electron Desktop app.
+
+Desktop Browser presentation includes Electron's Chromium. Headless Browser tools used directly by the CLI/server require an installed Chrome or Chromium; set `CHROMIUM_PATH` when it is not in a standard system or Playwright cache location.
 
 Configure a model provider, start the background runtime, and open the Web client:
 
@@ -126,6 +130,7 @@ Core runtime tests run from `packages/synergy`:
 ```bash
 cd packages/synergy
 bun test
+bun run test:ci # CI-equivalent sequential shards
 ```
 
 Frontend package suites run through their standard scripts and are included in `bun run quality`:

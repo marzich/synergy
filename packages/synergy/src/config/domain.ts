@@ -17,9 +17,9 @@ export namespace ConfigDomain {
     "permissions",
     "channels",
     "holos",
-    "clarus",
     "email",
     "runtime",
+    "github",
   ])
   export type Id = z.infer<typeof Id>
 
@@ -99,7 +99,6 @@ export namespace ConfigDomain {
     ]),
     def("channels", "90-channels.jsonc", "Channels", ["channel"]),
     def("holos", "100-holos.jsonc", "Holos", ["holos", "enterprise"]),
-    def("clarus", "105-clarus.jsonc", "Clarus", ["clarus"]),
     def("email", "110-email.jsonc", "Email", ["email"]),
     def("runtime", "120-runtime.jsonc", "Runtime", [
       "server",
@@ -115,6 +114,7 @@ export namespace ConfigDomain {
       "experimental",
       "observability",
     ]),
+    def("github", "130-github.jsonc", "GitHub", ["github"]),
   ] as const satisfies Definition[]
 
   function def(

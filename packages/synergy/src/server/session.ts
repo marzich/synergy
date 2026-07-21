@@ -4,8 +4,10 @@ import { stream } from "hono/streaming"
 import z from "zod"
 import { Command } from "../command/command"
 import { Session } from "../session"
+import { Worktree } from "../project/worktree"
 import { SessionManager } from "../session/manager"
 import { SessionInvoke, InvokeInput } from "../session/invoke"
+import { SessionAbort } from "../session/abort"
 import { SessionInbox } from "../session/inbox"
 import { shell as invokeShell, ShellInput } from "../session/shell"
 import { SessionHistory } from "../session/history"
@@ -35,6 +37,12 @@ const SessionMessagePageBadRequestError = z.union([
   SessionHistory.MessagePageCursorInvalidError.Schema,
   SessionHistory.MessagePageCursorStaleError.Schema,
 ])
+
+async function assertSessionWorkspaceAvailable(sessionID: string) {
+  const session = await Session.get(sessionID)
+  if (session.workspace?.type !== "git_worktree") return
+  await Worktree.assertAvailable(session.workspace.path)
+}
 
 async function submitInput(input: InvokeInput): Promise<SessionInbox.InputResult> {
   if (SessionManager.isRunning(input.sessionID)) {
@@ -581,13 +589,7 @@ export const SessionRoute = new Hono()
       }),
     ),
     async (c) => {
-      const sessionID = c.req.valid("param").sessionID
-      SessionInvoke.cancel(sessionID)
-      const { Cortex } = await import("../cortex")
-      await Cortex.cancelAll(sessionID)
-      // Repair the persisted incomplete assistant so the frontend sees the
-      // session as stopped (not "recovering"), even if the processor is stuck.
-      await SessionInvoke.repairAfterAbort(sessionID)
+      await SessionAbort.abort(c.req.valid("param").sessionID)
       return c.json(true)
     },
   )
@@ -638,6 +640,14 @@ export const SessionRoute = new Hono()
           },
         },
         ...errors(400, 404),
+        409: {
+          description: "Session worktree unavailable",
+          content: {
+            "application/json": {
+              schema: resolver(Worktree.UnavailableError.Schema),
+            },
+          },
+        },
       },
     }),
     validator(
@@ -650,6 +660,7 @@ export const SessionRoute = new Hono()
     async (c) => {
       const sessionID = c.req.valid("param").sessionID
       const body = c.req.valid("json")
+      await assertSessionWorkspaceAvailable(sessionID)
       return c.json(await submitInput({ ...body, sessionID }))
     },
   )

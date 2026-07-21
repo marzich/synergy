@@ -21,6 +21,8 @@ For each model turn, the session tool resolver collects ephemeral tools, built-i
 
 The enforcement gate owns the security decision. A tool implementation can still reject malformed input or fail for ordinary runtime reasons after authorization.
 
+Tool exposure is a context-budget decision, not an authorization decision. `search_tools` and `expand_tools` let an eligible agent discover or activate deferred tools, but the resolver still removes every tool denied by agent, session, user-tool, or workflow policy.
+
 ## Capability Model
 
 Classification describes what an operation can do, independently of which tool requested it. Capabilities cover file access, shell behavior, network access, browser control, session state, secrets, identity and messaging actions, plugin/platform operations, and other protected boundaries.
@@ -91,7 +93,18 @@ Network policy is represented separately as full or restricted access. Restricte
 
 Synergy compiles the policy into platform-specific wrappers: Seatbelt on macOS, a Linux sandbox helper, and Windows/WSL-specific restricted execution paths. The configured fallback (`deny`, `warn`, or `allow`) determines what happens when the requested sandbox cannot be enforced on the current platform.
 
+Stable Linux and Windows runtimes package an architecture- and ABI-matched helper. The runtime embeds that helper's SHA-256 during compilation and verifies it before execution; a Stable build fails when the required helper asset is absent. Linux uses either a verified optional bundled Bubblewrap binary or the system `bubblewrap` package. The Debian installer declares Bubblewrap as a dependency, while portable and CLI archive installations report it as an external prerequisite.
+
 An explicit policy authorization can mark a shell operation as sandbox-bypassed. Otherwise, Bash receives the resolved sandbox wrapper when its profile mode is not `none`.
+
+## OOM Victim Preference
+
+On Linux, Synergy increases the chance that local Bash tool processes are selected before the core runtime during an out-of-memory kill.
+
+- The systemd user service unit sets `OOMPolicy=continue`. When a child in the service cgroup is killed by the OOM killer, systemd does not automatically stop the remaining service processes; the kernel can still select the main process independently.
+- After permission resolution, local Linux Bash prefixes the materialized command with a best-effort write of `1000` to `/proc/self/oom_score_adj` before sandbox preparation. This makes the tool child a preferred victim; the write is silent on failure and never blocks the command.
+
+These are victim-preference hints, not hard memory limits or cgroup constraints. Remote Link Bash and non-Linux local Bash are unchanged.
 
 ## Session and Workflow Restrictions
 
@@ -103,6 +116,7 @@ These restrictions are evaluated before the tool implementation. A permissive co
 
 - Every executable tool path passes through the centralized enforcement gate.
 - Availability, authorization, and sandboxing remain separate decisions.
+- Expanding a deferred group never grants a tool whose effective permission is denied.
 - `autonomous` never prompts the user.
 - `full_access` authorizes capabilities but cannot turn runtime failure into success.
 - Sensitive values are never sent raw to SmartAllow.

@@ -40,8 +40,9 @@ async function fixture(options: { artifact?: Buffer; signatureValid?: boolean; e
     Buffer.from(options.signatureValid === false ? `${manifest}tampered` : manifest),
     pair.privateKey,
   ).toString("base64")
-  const publicDer = pair.publicKey.export({ format: "der", type: "spki" }) as Buffer
-  const publicKey = publicDer.subarray(publicDer.length - 32).toString("base64")
+  const publicJwk = pair.publicKey.export({ format: "jwk" })
+  if (!publicJwk.x) throw new Error("Ed25519 fixture public key is missing its raw coordinate.")
+  const publicKey = Buffer.from(publicJwk.x, "base64url").toString("base64")
   const responses = new Map<string, BodyInit>([
     [`https://release.test/${manifestName}`, manifest],
     [`https://release.test/${manifestName}.sig`, signature],
@@ -119,6 +120,25 @@ describe("Browser Host artifact installation", () => {
         destination: traversal.destination,
       }),
     ).rejects.toThrow(/unsafe path|escapes/i)
+  })
+})
+
+describe("Chromium discovery", () => {
+  test("finds current Playwright Chromium layouts in the Windows local cache", async () => {
+    const localAppData = await fs.mkdtemp(path.join(os.tmpdir(), "synergy-playwright-windows-"))
+    tempDirs.push(localAppData)
+    const executable = path.join(localAppData, "ms-playwright", "chromium-1234", "chrome-win64", "chrome.exe")
+    await fs.mkdir(path.dirname(executable), { recursive: true })
+    await fs.writeFile(executable, "browser")
+
+    await expect(
+      BrowserInstall.discoverChromium({
+        platform: "win32",
+        arch: "x64",
+        home: localAppData,
+        env: { LOCALAPPDATA: localAppData },
+      }),
+    ).resolves.toBe(executable)
   })
 })
 

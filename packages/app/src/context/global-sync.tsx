@@ -19,6 +19,7 @@ import {
   type CortexTask,
   type AgendaItem,
   type SessionInboxItem,
+  type ScopeBootstrapResponse,
   createSynergyClient,
 } from "@ericsanchezok/synergy-sdk/client"
 import { resolveWorkspaceTransition } from "./workspace-transition"
@@ -26,8 +27,18 @@ import { planMessagePageApply } from "./session-message-page"
 import { shouldRefreshGlobalConfig, type ConfigUpdatedProperties } from "./global-config-sync"
 import { LocaleConfigReconciler } from "./locale-config-reconciler"
 import { observeWatermark, type Watermark } from "./sync-watermark"
+import { planSessionVolatileResync } from "./session-volatile-resync"
+import {
+  parseSyncVersion,
+  readSyncVersion,
+  SyncResourceFreshness,
+  type SyncResource,
+  type SyncResourceRequest,
+} from "./sync-resource-freshness"
 import { planBucketEviction } from "./message-eviction"
 import { describeToolPartApply } from "./session-sync-plan"
+import { createSessionMessageLoader } from "./session-message-loader"
+import { SessionPartSnapshotFreshness, type SessionPartSnapshotRequest } from "./session-part-snapshot-freshness"
 import {
   applyLatestPage,
   reconcileMessage,
@@ -46,6 +57,11 @@ import {
   type PlanBlueprintOfferEvent,
   type PlanBlueprintOfferState,
 } from "./plan-blueprint-offer"
+import {
+  createSessionContextProjectionRevision,
+  invalidateLatestSessionContextUsageMessage,
+  reduceLatestSessionContextUsageMessage,
+} from "./session-context-usage"
 import { createStore, produce, reconcile, type SetStoreFunction } from "solid-js/store"
 import { Binary } from "@ericsanchezok/synergy-util/binary"
 import { retry } from "@ericsanchezok/synergy-util/retry"
@@ -135,6 +151,7 @@ type State = {
   messageWindow: {
     [sessionID: string]: MessageWindowMetadata
   }
+  latestContextMessage: Partial<Record<string, Message | null>>
   part: {
     [messageID: string]: Part[]
   }
@@ -211,6 +228,7 @@ export function refreshPlanBlueprintOfferFromLoadedParts(
 }
 
 function createGlobalSync() {
+  const contextProjectionRevision = createSessionContextProjectionRevision()
   const globalSDK = useGlobalSDK()
   const [globalStore, setGlobalStore] = createStore<{
     ready: boolean
@@ -249,6 +267,9 @@ function createGlobalSync() {
   // in the normalized store — e.g. blueprint loop state, which the server cannot
   // replay after a restart — refetch their state (issue #331).
   const [reconnectVersion, setReconnectVersion] = createSignal(0)
+  const resourceFreshness = new SyncResourceFreshness()
+  const partSnapshotFreshness = new SessionPartSnapshotFreshness()
+  const replayPending = new Set<string>()
 
   async function runInstanceRequests<T>(
     items: T[],
@@ -277,6 +298,66 @@ function createGlobalSync() {
 
   function scopeRequest(scopeKey: string) {
     return isHomeScope(scopeKey) ? { scopeID: HOME_SCOPE_KEY } : { directory: scopeKey }
+  }
+
+  function captureResourceRequest(scopeKey: string, sessionID: string, resource: SyncResource) {
+    return resourceFreshness.capture({ scopeKey, sessionID, resource })
+  }
+
+  function applyResourceResponse(
+    scopeKey: string,
+    sessionID: string,
+    resource: SyncResource,
+    request: SyncResourceRequest,
+    headers: Pick<Headers, "get"> | undefined,
+    apply: () => void,
+  ) {
+    const accepted = resourceFreshness.acceptResponse(
+      { scopeKey, sessionID, resource },
+      request,
+      readSyncVersion(headers),
+    )
+    if (!accepted) return false
+    apply()
+    return true
+  }
+  function invalidateResource(scopeKey: string, sessionID: string, resource: SyncResource) {
+    resourceFreshness.invalidate({ scopeKey, sessionID, resource })
+  }
+
+  function applyResourceEvent(
+    scopeKey: string,
+    sessionID: string,
+    resource: SyncResource,
+    event: { epoch?: unknown; seq?: unknown },
+    apply: () => void,
+  ) {
+    const accepted = resourceFreshness.acceptEvent({ scopeKey, sessionID, resource }, parseSyncVersion(event))
+    if (!accepted) return false
+    apply()
+    return true
+  }
+
+  function isResourceRequestCurrent(
+    scopeKey: string,
+    sessionID: string,
+    resource: SyncResource,
+    request: SyncResourceRequest,
+  ) {
+    return resourceFreshness.unchanged({ scopeKey, sessionID, resource }, request)
+  }
+
+  function capturePartSnapshotRequest(scopeKey: string, sessionID: string) {
+    return partSnapshotFreshness.capture(scopeKey, sessionID)
+  }
+
+  function partSnapshotAction(
+    scopeKey: string,
+    sessionID: string,
+    messageID: string,
+    request: SessionPartSnapshotRequest,
+  ) {
+    return partSnapshotFreshness.action(scopeKey, sessionID, messageID, request)
   }
 
   function scheduleBootstrap(scopeKey: string) {
@@ -344,15 +425,51 @@ function createGlobalSync() {
         sessionTotal: 0,
         message: {},
         messageWindow: {},
+        latestContextMessage: {},
         part: {},
       })
       scheduleBootstrap(scopeKey)
     }
     return children[scopeKey]
   }
+  function setLatestContextMessage(
+    scopeKey: string,
+    sessionID: string,
+    message: Message | null | undefined,
+    revision?: number,
+  ) {
+    if (revision !== undefined && !contextProjectionRevision.isCurrent(scopeKey, sessionID, revision)) return
+    const state = children[scopeKey]
+    if (!state) return
+    const [store, setStore] = state
+    if (store.latestContextMessage[sessionID] === message) return
+    if (message === undefined) {
+      setStore(
+        "latestContextMessage",
+        produce((draft) => {
+          delete draft[sessionID]
+        }),
+      )
+      return
+    }
+    if (message === null) {
+      setStore("latestContextMessage", sessionID, null)
+      return
+    }
+    setStore("latestContextMessage", sessionID, reconcile(message))
+  }
 
   function releaseScopeState(scopeKey: string) {
+    const store = children[scopeKey]?.[0]
+    const sessionIDs = new Set([
+      ...Object.keys(store?.message ?? {}),
+      ...Object.keys(store?.messageWindow ?? {}),
+      ...Object.keys(store?.latestContextMessage ?? {}),
+    ])
+    for (const sessionID of sessionIDs) contextProjectionRevision.release(scopeKey, sessionID)
     delete children[scopeKey]
+    resourceFreshness.releaseScope(scopeKey)
+    partSnapshotFreshness.releaseScope(scopeKey)
     bootstrapQueued.delete(scopeKey)
   }
 
@@ -619,9 +736,14 @@ function createGlobalSync() {
         if (!state) return
         const [, setStore] = state
         const sdk = createScopedClient(scopeKey)
+        const request = captureResourceRequest(scopeKey, sessionID, "inbox")
         sdk.session
           .inbox({ sessionID })
-          .then((result) => setStore("inbox", sessionID, reconcile(result.data ?? [], { key: "id" })))
+          .then((result) => {
+            applyResourceResponse(scopeKey, sessionID, "inbox", request, result.response?.headers, () => {
+              setStore("inbox", sessionID, reconcile(result.data ?? [], { key: "id" }))
+            })
+          })
           .catch(() => {})
       }, 120),
     )
@@ -664,123 +786,154 @@ function createGlobalSync() {
     )
   }
 
-  async function refreshRetainedVolatileState(scopeKey: string, store: State, setStore: SetStoreFunction<State>) {
-    const sessionIDs = Array.from(
-      new Set([...Object.keys(store.inbox), ...Object.keys(store.todo), ...Object.keys(store.dag)]),
-    )
-    const sdk = createScopedClient(scopeKey)
-    await runInstanceRequests(sessionIDs, async (sessionID) => {
-      await Promise.all([
-        sdk.session
-          .inbox({ sessionID })
-          .then((result) => setStore("inbox", sessionID, reconcile(result.data ?? [], { key: "id" })))
-          .catch(() => {}),
-        sdk.session
-          .todo({ sessionID })
-          .then((result) => setStore("todo", sessionID, reconcile(result.data ?? [], { key: "id" })))
-          .catch(() => {}),
-        sdk.session
-          .dag({ sessionID, ...scopeRequest(scopeKey) })
-          .then((result) => setStore("dag", sessionID, reconcile(result.data ?? [], { key: "id" })))
-          .catch(() => {}),
-      ])
+  function applyScopeBootstrapSnapshot(
+    scopeKey: string,
+    store: State,
+    setStore: SetStoreFunction<State>,
+    data: ScopeBootstrapResponse,
+    headers: Pick<Headers, "get"> | undefined,
+  ) {
+    const sessions = data.sessions?.data.filter((session) => !!session?.id && !session.time?.archived)
+    batch(() => {
+      setStore("scopeID", data.scopeID)
+      setStore("provider", {
+        ...data.provider,
+        all: data.provider.all.map((provider) => ({
+          ...provider,
+          models: Object.fromEntries(
+            Object.entries(provider.models).filter(([, info]) => info.status !== "deprecated"),
+          ),
+        })),
+      })
+      setStore("agent", reconcile(data.agent, { key: "name" }))
+      setStore("config", reconcile(data.config))
+      if (data.path) setStore("path", reconcile(data.path))
+      if (data.command) setStore("command", reconcile(data.command, { key: "name" }))
+      if (data.sessionStatus) setStore("session_status", reconcile(data.sessionStatus))
+      if (sessions) {
+        setStore("session", reconcile(sessions, { key: "id" }))
+        setStore("sessionTotal", data.sessions!.total)
+      }
+      if (data.mcp) setStore("mcp", reconcile(data.mcp))
+      if (data.cortex) setStore("cortex", reconcile(data.cortex, { key: "id" }))
+      if (data.agenda) {
+        setStore(
+          "agenda",
+          reconcile(
+            data.agenda.slice().sort((a, b) => a.id.localeCompare(b.id)),
+            { key: "id" },
+          ),
+        )
+      }
+      if (data.lsp) setStore("lsp", reconcile(data.lsp, { key: "id" }))
+      if (data.vcs) setStore("vcs", reconcile(data.vcs))
     })
+
+    const version = readSyncVersion(headers)
+    if (!version) return
+    const current = watermarks.get(scopeKey)
+    if (!current || current.epoch !== version.epoch || version.seq > current.seq) {
+      watermarks.set(scopeKey, version)
+    }
+  }
+
+  async function refreshVolatileAfterResync(scopeKey: string, store: State, setStore: SetStoreFunction<State>) {
+    const plan = planSessionVolatileResync({
+      scopeKey,
+      activeBucketKey,
+      inboxSessionIDs: Object.keys(store.inbox),
+      todoSessionIDs: Object.keys(store.todo),
+      dagSessionIDs: Object.keys(store.dag),
+    })
+    for (const sessionID of plan.retainedSessionIDs) {
+      invalidateResource(scopeKey, sessionID, "inbox")
+      invalidateResource(scopeKey, sessionID, "todo")
+      invalidateResource(scopeKey, sessionID, "dag")
+    }
+    setStore(
+      produce((draft) => {
+        for (const sessionID of plan.retainedSessionIDs) {
+          if (sessionID === plan.activeSessionID) continue
+          delete draft.inbox[sessionID]
+          delete draft.todo[sessionID]
+          delete draft.dag[sessionID]
+        }
+      }),
+    )
+    if (!plan.activeSessionID) return
+
+    const sessionID = plan.activeSessionID
+    const inboxRequest = captureResourceRequest(scopeKey, sessionID, "inbox")
+    const todoRequest = captureResourceRequest(scopeKey, sessionID, "todo")
+    const dagRequest = captureResourceRequest(scopeKey, sessionID, "dag")
+    const sdk = createScopedClient(scopeKey)
+    await sdk.session
+      .volatileBatch({
+        ...scopeRequest(scopeKey),
+        sessionVolatileBatchInput: { sessionIDs: [sessionID] },
+      })
+      .then((result) => {
+        const state = result.data?.sessions[sessionID]
+        if (!state) return
+        applyResourceResponse(scopeKey, sessionID, "inbox", inboxRequest, result.response?.headers, () => {
+          setStore("inbox", sessionID, reconcile(state.inbox, { key: "id" }))
+        })
+        applyResourceResponse(scopeKey, sessionID, "todo", todoRequest, result.response?.headers, () => {
+          setStore("todo", sessionID, reconcile(state.todo, { key: "id" }))
+        })
+        applyResourceResponse(scopeKey, sessionID, "dag", dagRequest, result.response?.headers, () => {
+          setStore("dag", sessionID, reconcile(state.dag, { key: "id" }))
+        })
+      })
+      .catch(() => {})
   }
 
   async function resyncInstance(scopeKey: string) {
     if (!scopeKey || !children[scopeKey]) return
     const [store, setStore] = children[scopeKey]
     if (store.status === "loading") return
-    const isHome = isHomeScope(scopeKey)
     const sdk = createScopedClient(scopeKey)
 
     await Promise.all([
-      loadSessions(scopeKey, sdk),
-      sdk.session.status().then((x) => setStore("session_status", x.data!)),
-      sdk.cortex.list({}).then((x) => setStore("cortex", x.data ?? [])),
-      sdk.agenda.list().then((x) =>
-        setStore(
-          "agenda",
-          reconcile(
-            (x.data ?? []).slice().sort((a, b) => a.id.localeCompare(b.id)),
-            { key: "id" },
-          ),
-        ),
-      ),
+      sdk.scope.bootstrap(scopeRequest(scopeKey)).then((result) => {
+        if (!result.data) return
+        applyScopeBootstrapSnapshot(scopeKey, store, setStore, result.data, result.response?.headers)
+      }),
       sdk.permission
         .list()
-        .then((x) => syncBySession(setStore, "permission", Object.keys(store.permission), x.data ?? [])),
-      sdk.question.list().then((x) => syncBySession(setStore, "question", Object.keys(store.question), x.data ?? [])),
-      refreshRetainedVolatileState(scopeKey, store, setStore),
-      ...(!isHome
-        ? [
-            sdk.mcp.status().then((x) => setStore("mcp", x.data!)),
-            sdk.lsp.status().then((x) => setStore("lsp", x.data!)),
-          ]
-        : []),
+        .then((result) => syncBySession(setStore, "permission", Object.keys(store.permission), result.data ?? [])),
+      sdk.question
+        .list()
+        .then((result) => syncBySession(setStore, "question", Object.keys(store.question), result.data ?? [])),
+      refreshVolatileAfterResync(scopeKey, store, setStore),
     ])
   }
 
   async function bootstrapInstance(scopeKey: string) {
     if (!scopeKey) return
-    const isHome = isHomeScope(scopeKey)
     const [store, setStore] = ensureScopeState(scopeKey)
     const sdk = createScopedClient(scopeKey)
+    const snapshotRequest = retry(() => sdk.scope.bootstrap(scopeRequest(scopeKey))).then((result) => {
+      if (!result.data) throw new Error("Scope bootstrap returned no data")
+      applyScopeBootstrapSnapshot(scopeKey, store, setStore, result.data, result.response?.headers)
+    })
+    const remainingRequests = [
+      sdk.permission
+        .list()
+        .then((result) => syncBySession(setStore, "permission", Object.keys(store.permission), result.data ?? [])),
+      sdk.question
+        .list()
+        .then((result) => syncBySession(setStore, "question", Object.keys(store.question), result.data ?? [])),
+    ]
 
-    const blockingRequests: Record<string, () => Promise<void>> = {
-      provider: () =>
-        sdk.provider.list().then((x) => {
-          const data = x.data!
-          setStore("provider", {
-            ...data,
-            all: data.all.map((provider) => ({
-              ...provider,
-              models: Object.fromEntries(
-                Object.entries(provider.models).filter(([, info]) => info.status !== "deprecated"),
-              ),
-            })),
-          })
-        }),
-      agent: () => sdk.app.agents().then((x) => setStore("agent", x.data ?? [])),
-      config: () => sdk.config.get().then((x) => setStore("config", x.data!)),
+    try {
+      await snapshotRequest
+      if (store.status !== "complete") setStore("status", "partial")
+      await Promise.all(remainingRequests)
+      setStore("status", "complete")
+    } catch (error) {
+      setGlobalStore("error", error as Error)
     }
-    blockingRequests.scopeID = isHome
-      ? () => Promise.resolve(setStore("scopeID", HOME_SCOPE_KEY))
-      : () => sdk.scope.current().then((x) => setStore("scopeID", x.data!.id))
-    await Promise.all(Object.values(blockingRequests).map((p) => retry(p).catch((e) => setGlobalStore("error", e))))
-      .then(async () => {
-        if (store.status !== "complete") setStore("status", "partial")
-        const requests: Promise<unknown>[] = [
-          sdk.path.get(scopeRequest(scopeKey)).then((x) => setStore("path", x.data!)),
-          sdk.command.list().then((x) => setStore("command", x.data ?? [])),
-          sdk.session.status().then((x) => setStore("session_status", x.data!)),
-          loadSessions(scopeKey, sdk),
-          sdk.mcp.status().then((x) => setStore("mcp", x.data!)),
-          sdk.cortex.list({}).then((x) => setStore("cortex", x.data ?? [])),
-          sdk.agenda.list().then((x) =>
-            setStore(
-              "agenda",
-              reconcile(
-                (x.data ?? []).slice().sort((a, b) => a.id.localeCompare(b.id)),
-                { key: "id" },
-              ),
-            ),
-          ),
-          sdk.permission
-            .list()
-            .then((x) => syncBySession(setStore, "permission", Object.keys(store.permission), x.data ?? [])),
-          sdk.question
-            .list()
-            .then((x) => syncBySession(setStore, "question", Object.keys(store.question), x.data ?? [])),
-        ]
-        if (!isHome) {
-          requests.push(sdk.lsp.status().then((x) => setStore("lsp", x.data!)))
-          requests.push(sdk.vcs.get().then((x) => setStore("vcs", x.data)))
-        }
-        await Promise.all(requests)
-        setStore("status", "complete")
-      })
-      .catch((e) => setGlobalStore("error", e))
   }
 
   // Per-scope event watermark (highest applied state-event seq + epoch), used
@@ -807,6 +960,7 @@ function createGlobalSync() {
       const sep = key.indexOf("\n")
       const scopeKey = key.slice(0, sep)
       const sessionID = key.slice(sep + 1)
+      partSnapshotFreshness.releaseSession(scopeKey, sessionID)
       const state = children[scopeKey]
       if (!state) continue
       const [store, setStore] = state
@@ -816,6 +970,7 @@ function createGlobalSync() {
           if (msgs) for (const m of msgs) delete draft.part[m.id]
           delete draft.message[sessionID]
           delete draft.messageWindow[sessionID]
+          delete draft.latestContextMessage[sessionID]
         }),
       )
     }
@@ -836,6 +991,93 @@ function createGlobalSync() {
     activeBucketKey = sessionID ? bucketKey(scopeKey, sessionID) : undefined
     if (scopeKey && sessionID) touchMessageBucket(scopeKey, sessionID)
   }
+
+  type ScopedClient = ReturnType<typeof createScopedClient>
+  type CompactionMessageLoadInput = {
+    scopeKey: string
+    sessionID: string
+    inboxRequest: SyncResourceRequest
+  }
+  type CompactionMessageLoadResult = {
+    response: Awaited<ReturnType<ScopedClient["session"]["messagePage"]>>
+    messageRequest: SyncResourceRequest
+    partSnapshotRequest: SessionPartSnapshotRequest
+    contextProjectionRevision: number
+  }
+  const compactionMessageLoader = createSessionMessageLoader<CompactionMessageLoadResult, CompactionMessageLoadInput>({
+    request: async (_key, signal, input) => {
+      if (!input) throw new Error("Missing compaction message load input")
+      const sdk = createScopedClient(input.scopeKey)
+      const messageRequest = captureResourceRequest(input.scopeKey, input.sessionID, "message")
+      const partSnapshotRequest = capturePartSnapshotRequest(input.scopeKey, input.sessionID)
+      const projectionRevision = contextProjectionRevision.begin(input.scopeKey, input.sessionID)
+      const response = await retry(() =>
+        sdk.session.messagePage({ sessionID: input.sessionID, limit: 200 }, { signal, throwOnError: true }),
+      )
+      return { response, messageRequest, partSnapshotRequest, contextProjectionRevision: projectionRevision }
+    },
+    apply: (_key, result, input) => {
+      if (!input) return "applied"
+      const state = children[input.scopeKey]
+      if (!state || !result.response.data) return "applied"
+      const [store, setStore] = state
+      const currentMessages = store.message[input.sessionID]
+      if (!currentMessages) return "applied"
+      const metadata = store.messageWindow[input.sessionID]
+      const plan = planMessagePageApply({
+        page: result.response.data,
+        current: {
+          messages: currentMessages,
+          mode: metadata?.mode ?? "latest",
+          pendingLatest: metadata?.pendingLatest ?? false,
+          pendingLatestIds: metadata?.pendingLatestIds ?? [],
+        },
+      })
+      const partActions = new Map(
+        Object.keys(plan.parts).map((messageID) => [
+          messageID,
+          partSnapshotAction(input.scopeKey, input.sessionID, messageID, result.partSnapshotRequest),
+        ]),
+      )
+      if ([...partActions.values()].some((action) => action === "retry")) return "superseded"
+      const accepted = applyResourceResponse(
+        input.scopeKey,
+        input.sessionID,
+        "message",
+        result.messageRequest,
+        result.response.response?.headers,
+        () => {
+          batch(() => {
+            setStore(
+              produce((draft) => {
+                for (const messageID of plan.droppedIds) delete draft.part[messageID]
+                delete draft.session_diff[input.sessionID]
+                if (isResourceRequestCurrent(input.scopeKey, input.sessionID, "inbox", input.inboxRequest)) {
+                  delete draft.inbox[input.sessionID]
+                }
+              }),
+            )
+            setStore("message", input.sessionID, reconcile(plan.window.messages, { key: "id" }))
+            setStore("messageWindow", input.sessionID, reconcile(plan.metadata))
+            setLatestContextMessage(
+              input.scopeKey,
+              input.sessionID,
+              plan.latestContextMessage,
+              result.contextProjectionRevision,
+            )
+            for (const [messageID, parts] of Object.entries(plan.parts)) {
+              if (partActions.get(messageID) === "preserve") continue
+              setStore("part", messageID, reconcile(parts, { key: "id" }))
+            }
+          })
+          touchMessageBucket(input.scopeKey, input.sessionID)
+          refreshPlanBlueprintOfferFromLoadedParts(store, setStore, input.sessionID)
+        },
+      )
+      return accepted ? "applied" : "superseded"
+    },
+    errorMessage: () => "Couldn’t refresh compacted conversation",
+  })
 
   function applyEvent(scopeKey: string, event: any) {
     if (event?.type === "global.disposed") {
@@ -954,8 +1196,8 @@ function createGlobalSync() {
               }),
             )
             setStore("sessionTotal", Math.max(0, store.sessionTotal - 1))
-            updatePlanBlueprintOfferState(store, setStore, info.id, { type: "plan_exited" })
           }
+          updatePlanBlueprintOfferState(store, setStore, info.id, { type: "session_removed" })
           break
         }
         if (result.found) {
@@ -982,11 +1224,17 @@ function createGlobalSync() {
         setStore("session_diff", event.properties.sessionID, reconcile(event.properties.diff, { key: "file" }))
         break
       case "todo.updated":
-        setStore("todo", event.properties.sessionID, reconcile(event.properties.todos, { key: "id" }))
+        applyResourceEvent(scopeKey, event.properties.sessionID, "todo", event, () => {
+          setStore("todo", event.properties.sessionID, reconcile(event.properties.todos, { key: "id" }))
+        })
         break
-      case "dag.updated" as string:
-        setStore("dag", (event as any).properties.sessionID, reconcile((event as any).properties.nodes, { key: "id" }))
+      case "dag.updated" as string: {
+        const properties = (event as any).properties
+        applyResourceEvent(scopeKey, properties.sessionID, "dag", event, () => {
+          setStore("dag", properties.sessionID, reconcile(properties.nodes, { key: "id" }))
+        })
         break
+      }
       case "session.status": {
         // Handles busy, retry, idle, and recovering statuses
         setStore("session_status", event.properties.sessionID, reconcile(event.properties.status))
@@ -1005,7 +1253,9 @@ function createGlobalSync() {
         break
       }
       case "session.inbox.updated": {
-        setStore("inbox", event.properties.sessionID, reconcile(event.properties.items, { key: "id" }))
+        applyResourceEvent(scopeKey, event.properties.sessionID, "inbox", event, () => {
+          setStore("inbox", event.properties.sessionID, reconcile(event.properties.items, { key: "id" }))
+        })
         break
       }
       case "mcp.ready":
@@ -1021,81 +1271,97 @@ function createGlobalSync() {
       case "message.updated": {
         const info = event.properties.info as Message
         const sessionID = info.sessionID
-        touchMessageBucket(scopeKey, sessionID)
-        const messages = store.message[sessionID] ?? []
-        const metadata = store.messageWindow[sessionID]
-        const existing = messages.some((message) => message.id === info.id)
-        const current: MessageWindowState<Message> = {
-          messages,
-          mode: metadata?.mode ?? "latest",
-          pendingLatest: metadata?.pendingLatest ?? false,
-          pendingLatestIds: metadata?.pendingLatestIds ?? [],
-        }
-        const result = reconcileMessage(current, info)
-
-        batch(() => {
-          setStore(
-            produce((draft) => {
-              for (const messageID of result.droppedIds) delete draft.part[messageID]
-            }),
+        applyResourceEvent(scopeKey, sessionID, "message", event, () => {
+          touchMessageBucket(scopeKey, sessionID)
+          contextProjectionRevision.invalidate(scopeKey, sessionID)
+          const latestContextMessage = reduceLatestSessionContextUsageMessage(
+            store.latestContextMessage[sessionID],
+            info,
           )
-          setStore("message", sessionID, reconcile(result.window.messages, { key: "id" }))
-          if (metadata) {
+          const messages = store.message[sessionID] ?? []
+          const metadata = store.messageWindow[sessionID]
+          const existing = messages.some((message) => message.id === info.id)
+          const current: MessageWindowState<Message> = {
+            messages,
+            mode: metadata?.mode ?? "latest",
+            pendingLatest: metadata?.pendingLatest ?? false,
+            pendingLatestIds: metadata?.pendingLatestIds ?? [],
+          }
+          const result = reconcileMessage(current, info)
+
+          batch(() => {
+            setLatestContextMessage(scopeKey, sessionID, latestContextMessage)
             setStore(
-              "messageWindow",
-              sessionID,
-              reconcile({
-                ...metadata,
-                total: nextMessageWindowTotal({
-                  total: metadata.total,
-                  existing,
-                  visible: result.window.messages.some((message) => message.id === info.id),
-                }),
-                mode: result.window.mode,
-                pendingLatest: result.window.pendingLatest,
-                pendingLatestIds: result.window.pendingLatestIds,
+              produce((draft) => {
+                for (const messageID of result.droppedIds) delete draft.part[messageID]
               }),
             )
-          }
+            setStore("message", sessionID, reconcile(result.window.messages, { key: "id" }))
+            if (metadata) {
+              setStore(
+                "messageWindow",
+                sessionID,
+                reconcile({
+                  ...metadata,
+                  total: nextMessageWindowTotal({
+                    total: metadata.total,
+                    existing,
+                    visible: result.window.messages.some((message) => message.id === info.id),
+                  }),
+                  mode: result.window.mode,
+                  pendingLatest: result.window.pendingLatest,
+                  pendingLatestIds: result.window.pendingLatestIds,
+                }),
+              )
+            }
+          })
         })
         break
       }
       case "message.removed": {
         const sessionID = event.properties.sessionID as string
         const messageID = event.properties.messageID as string
-        const messages = store.message[sessionID]
-        if (!messages) break
-        const metadata = store.messageWindow[sessionID]
-        const current: MessageWindowState<Message> = {
-          messages,
-          mode: metadata?.mode ?? "latest",
-          pendingLatest: metadata?.pendingLatest ?? false,
-          pendingLatestIds: metadata?.pendingLatestIds ?? [],
-        }
-        const pending = current.pendingLatestIds.includes(messageID)
-        const result = removeMessageFromWindow(current, messageID)
-        const removedVisible = result.messages.length !== messages.length
-        batch(() => {
-          if (removedVisible) {
-            setStore(
-              produce((draft) => {
-                delete draft.part[messageID]
-              }),
-            )
-            setStore("message", sessionID, reconcile(result.messages, { key: "id" }))
+        applyResourceEvent(scopeKey, sessionID, "message", event, () => {
+          contextProjectionRevision.invalidate(scopeKey, sessionID)
+          const latestContextMessage = invalidateLatestSessionContextUsageMessage(
+            store.latestContextMessage[sessionID],
+            messageID,
+          )
+          const messages = store.message[sessionID]
+          if (!messages && latestContextMessage === store.latestContextMessage[sessionID]) return
+          const metadata = store.messageWindow[sessionID]
+          const current: MessageWindowState<Message> = {
+            messages: messages ?? [],
+            mode: metadata?.mode ?? "latest",
+            pendingLatest: metadata?.pendingLatest ?? false,
+            pendingLatestIds: metadata?.pendingLatestIds ?? [],
           }
-          if (metadata) {
-            setStore(
-              "messageWindow",
-              sessionID,
-              reconcile({
-                ...metadata,
-                total: nextMessageWindowTotalAfterRemoval({ total: metadata.total, pending }),
-                pendingLatest: result.pendingLatest,
-                pendingLatestIds: result.pendingLatestIds,
-              }),
-            )
-          }
+          const pending = current.pendingLatestIds.includes(messageID)
+          const result = removeMessageFromWindow(current, messageID)
+          const removedVisible = result.messages.length !== (messages?.length ?? 0)
+          batch(() => {
+            setLatestContextMessage(scopeKey, sessionID, latestContextMessage)
+            if (removedVisible) {
+              setStore(
+                produce((draft) => {
+                  delete draft.part[messageID]
+                }),
+              )
+              setStore("message", sessionID, reconcile(result.messages, { key: "id" }))
+            }
+            if (metadata) {
+              setStore(
+                "messageWindow",
+                sessionID,
+                reconcile({
+                  ...metadata,
+                  total: nextMessageWindowTotalAfterRemoval({ total: metadata.total, pending }),
+                  pendingLatest: result.pendingLatest,
+                  pendingLatestIds: result.pendingLatestIds,
+                }),
+              )
+            }
+          })
         })
         break
       }
@@ -1106,7 +1372,8 @@ function createGlobalSync() {
         // (frame arrived before the first checkpoint), ignore it — a full
         // `message.part.updated` checkpoint follows within EventWire.CHECKPOINT_MS
         // and reconciles authoritative state.
-        const { messageID, partID, delta } = event.properties as {
+        const { sessionID, messageID, partID, delta } = event.properties as {
+          sessionID: string
           messageID: string
           partID: string
           delta: string
@@ -1115,6 +1382,7 @@ function createGlobalSync() {
         if (!parts) break
         const result = Binary.search(parts, partID, (p) => p.id)
         if (!result.found) break
+        partSnapshotFreshness.touch(scopeKey, sessionID, messageID)
         // Fine-grained: produce mutates only the .text leaf of this one part, so
         // a streaming reply re-renders the changed text node rather than the
         // whole part on every delta.
@@ -1136,7 +1404,10 @@ function createGlobalSync() {
       }
       case "message.part.updated": {
         const part = event.properties.part
-        if (!store.message[part.sessionID]?.some((message) => message.id === part.messageID)) break
+        const messageLoaded = store.message[part.sessionID]?.some((message) => message.id === part.messageID) ?? false
+        partSnapshotFreshness.touch(scopeKey, part.sessionID, part.messageID, { requiresSnapshot: !messageLoaded })
+        if (!messageLoaded) break
+        invalidateResource(scopeKey, part.sessionID, "message")
         const parts = store.part[part.messageID]
         if (!parts) {
           if (part.type === "tool") {
@@ -1205,13 +1476,18 @@ function createGlobalSync() {
         break
       }
       case "message.part.removed": {
-        const parts = store.part[event.properties.messageID]
+        const { sessionID, messageID, partID } = event.properties
+        const messageLoaded = store.message[sessionID]?.some((message) => message.id === messageID) ?? false
+        partSnapshotFreshness.touch(scopeKey, sessionID, messageID, { requiresSnapshot: !messageLoaded })
+        if (!messageLoaded) break
+        invalidateResource(scopeKey, sessionID, "message")
+        const parts = store.part[messageID]
         if (!parts) break
-        const result = Binary.search(parts, event.properties.partID, (p) => p.id)
+        const result = Binary.search(parts, partID, (p) => p.id)
         if (result.found) {
           setStore(
             "part",
-            event.properties.messageID,
+            messageID,
             produce((draft) => {
               draft.splice(result.index, 1)
             }),
@@ -1364,36 +1640,17 @@ function createGlobalSync() {
       }
       case "session.compacted": {
         const sessionID = event.properties.sessionID as string
-        const currentMessages = store.message[sessionID]
-        if (!currentMessages) break
-        const sdk = createScopedClient(scopeKey)
-        retry(() => sdk.session.messagePage({ sessionID, limit: 200 }))
-          .then((result) => {
-            if (!result.data) return
-            const metadata = store.messageWindow[sessionID]
-            const plan = planMessagePageApply({
-              page: result.data,
-              current: {
-                messages: currentMessages,
-                mode: metadata?.mode ?? "latest",
-                pendingLatest: metadata?.pendingLatest ?? false,
-                pendingLatestIds: metadata?.pendingLatestIds ?? [],
-              },
-            })
-            batch(() => {
-              setStore(
-                produce((draft) => {
-                  for (const messageID of plan.droppedIds) delete draft.part[messageID]
-                  delete draft.session_diff[sessionID]
-                  delete draft.inbox[sessionID]
-                }),
-              )
-              setStore("message", sessionID, reconcile(plan.window.messages, { key: "id" }))
-              setStore("messageWindow", sessionID, reconcile(plan.metadata))
-              for (const [messageID, parts] of Object.entries(plan.parts)) {
-                setStore("part", messageID, reconcile(parts, { key: "id" }))
-              }
-            })
+        if (!store.message[sessionID]) break
+        const version = parseSyncVersion(event)
+        const acceptedInbox = resourceFreshness.acceptEvent({ scopeKey, sessionID, resource: "inbox" }, version)
+        const acceptedMessages = resourceFreshness.acceptEvent({ scopeKey, sessionID, resource: "message" }, version)
+        if (!acceptedInbox || !acceptedMessages) break
+        const inboxRequest = captureResourceRequest(scopeKey, sessionID, "inbox")
+        void compactionMessageLoader
+          .load(bucketKey(scopeKey, sessionID), {
+            force: true,
+            hasSnapshot: true,
+            input: { scopeKey, sessionID, inboxRequest },
           })
           .catch(() => {})
         break
@@ -1402,14 +1659,22 @@ function createGlobalSync() {
   }
 
   const unsub = globalSDK.event.listen((e) => {
-    // Track the scope's event watermark before applying, and trigger a replay
-    // if a gap or epoch change is detected. Streaming events carry no seq and
-    // leave the watermark untouched.
-    // seq/epoch are additive envelope fields not present in the generated Event
-    // type; read them structurally.
-    const observed = observeWatermark(watermarks.get(e.name), e.details as unknown as { epoch?: string; seq?: number })
+    // Retired-epoch events must not affect either the store or watermark.
+    // Streaming events carry no seq and pass through without changing either
+    // freshness or watermark state. seq/epoch are additive envelope fields not
+    // present in the generated Event type, so read them structurally.
+    const sequencedDetails = e.details as unknown as { epoch?: unknown; seq?: unknown }
+    const version =
+      typeof sequencedDetails.epoch === "string" && typeof sequencedDetails.seq === "number"
+        ? parseSyncVersion(sequencedDetails)
+        : undefined
+    if (!resourceFreshness.acceptScopeEvent(e.name, version)) return
+    const observed = observeWatermark(watermarks.get(e.name), sequencedDetails as { epoch?: string; seq?: number })
     if (observed.next) watermarks.set(e.name, observed.next)
-    if (observed.epochChanged || observed.gap) void replayOrResync(e.name)
+    if (observed.epochChanged || observed.gap) {
+      void replayOrResync(e.name, observed.replayFrom)
+      return
+    }
     applyEvent(e.name, e.details)
   })
   onCleanup(() => {
@@ -1418,16 +1683,20 @@ function createGlobalSync() {
     for (const timer of cortexRefreshTimers.values()) clearTimeout(timer)
     inboxRefreshTimers.clear()
     cortexRefreshTimers.clear()
+    compactionMessageLoader.dispose()
   })
 
   // Reconnect recovery: try to replay only the events missed since our
   // watermark instead of refetching everything. Falls back to a full resync on
   // reset (stale epoch / pruned journal) or any error — so it can never lose
   // updates, only do more work.
-  async function replayOrResync(scopeKey: string) {
+  async function replayOrResync(scopeKey: string, replayFrom?: Watermark) {
     if (scopeKey === "global" || !children[scopeKey]) return
-    if (replayInFlight.has(scopeKey)) return
-    const wm = watermarks.get(scopeKey)
+    if (replayInFlight.has(scopeKey)) {
+      replayPending.add(scopeKey)
+      return
+    }
+    const wm = replayFrom ?? watermarks.get(scopeKey)
     if (!wm) {
       await resyncInstance(scopeKey).catch(() => undefined)
       return
@@ -1442,6 +1711,7 @@ function createGlobalSync() {
         | undefined
       if (!data || data.status === "reset") {
         watermarks.delete(scopeKey)
+        if (data) resourceFreshness.resetScope(scopeKey, data.epoch, data.seq)
         await resyncInstance(scopeKey).catch(() => undefined)
         return
       }
@@ -1451,6 +1721,7 @@ function createGlobalSync() {
       await resyncInstance(scopeKey).catch(() => undefined)
     } finally {
       replayInFlight.delete(scopeKey)
+      if (replayPending.delete(scopeKey)) void replayOrResync(scopeKey)
     }
   }
 
@@ -1477,39 +1748,31 @@ function createGlobalSync() {
   })
 
   async function bootstrap() {
-    const health = await globalSDK.client.global
+    const healthRequest = globalSDK.client.global
       .health()
-      .then((x) => x.data)
+      .then((result) => result.data)
       .catch(() => undefined)
-    if (!health?.healthy) {
-      setGlobalStore(
-        "error",
-        new Error(`Could not connect to server. Is there a server running at \`${globalSDK.url}\`?`),
-      )
-      return
-    }
-
-    return Promise.all([
+    const configRequest = Promise.all([
       retry(loadGlobalConfig),
       retry(() =>
-        globalSDK.client.global.paths.get().then((x) => {
-          setGlobalStore("paths", x.data!)
+        globalSDK.client.global.paths.get().then((result) => {
+          setGlobalStore("paths", result.data!)
         }),
       ),
       retry(() =>
-        globalSDK.client.scope.list().then(async (x) => {
-          const scopes = (x.data ?? [])
-            .filter((p) => !!p?.id)
-            .filter((p) => !!p.worktree && !p.worktree.includes("synergy-test"))
-            .filter((p) => !p.time?.archived)
+        globalSDK.client.scope.list().then(async (result) => {
+          const scopes = (result.data ?? [])
+            .filter((scope) => !!scope?.id)
+            .filter((scope) => !!scope.worktree && !scope.worktree.includes("synergy-test"))
+            .filter((scope) => !scope.time?.archived)
             .slice()
             .sort((a, b) => a.id.localeCompare(b.id))
           setGlobalStore("scope", scopes)
         }),
       ),
       retry(() =>
-        globalSDK.client.provider.list().then((x) => {
-          const data = x.data!
+        globalSDK.client.provider.list().then((result) => {
+          const data = result.data!
           setGlobalStore("provider", {
             ...data,
             all: data.all.map((provider) => ({
@@ -1522,16 +1785,28 @@ function createGlobalSync() {
         }),
       ),
       retry(() =>
-        globalSDK.client.provider.auth().then((x) => {
-          setGlobalStore("provider_auth", x.data ?? {})
+        globalSDK.client.provider.auth().then((result) => {
+          setGlobalStore("provider_auth", result.data ?? {})
         }),
       ),
-    ])
-      .then(() => {
-        setGlobalStore("ready", true)
-        loadGlobalAgenda()
-      })
-      .catch((e) => setGlobalStore("error", e))
+    ]).then(
+      () => ({ ok: true as const }),
+      (error: unknown) => ({ ok: false as const, error }),
+    )
+    const [health, configResult] = await Promise.all([healthRequest, configRequest])
+    if (!health?.healthy) {
+      setGlobalStore(
+        "error",
+        new Error(`Could not connect to server. Is there a server running at \`${globalSDK.url}\`?`),
+      )
+      return
+    }
+    if (!configResult.ok) {
+      setGlobalStore("error", configResult.error as Error)
+      return
+    }
+    setGlobalStore("ready", true)
+    loadGlobalAgenda()
   }
 
   onMount(() => {
@@ -1551,8 +1826,15 @@ function createGlobalSync() {
     releaseScopeState,
     markActiveSession,
     touchMessageBucket,
+    beginContextProjection: contextProjectionRevision.begin,
+    setLatestContextMessage,
     bootstrap,
     reconnectVersion,
+    captureResourceRequest,
+    applyResourceResponse,
+    invalidateResource,
+    capturePartSnapshotRequest,
+    partSnapshotAction,
     get agenda() {
       return globalStore.agenda
     },

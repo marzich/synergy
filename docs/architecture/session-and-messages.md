@@ -14,7 +14,33 @@ Session state includes, when applicable:
 - Agenda, Cortex, BlueprintLoop, SuperPlan, or workflow metadata
 - inbox, todo, DAG, history, completion, and recovery state
 
+## Completion Notice and the `session.completion` Event
+
+Each session stores a durable `completionNotice` with three fields:
+
+| Field         | Type      | Meaning                                                                          |
+| ------------- | --------- | -------------------------------------------------------------------------------- |
+| `unread`      | `boolean` | Whether any unacknowledged assistant reply exists.                               |
+| `unreadCount` | `number`  | Monotonic counter of assistant terminal replies since last clear.                |
+| `silent`      | `boolean` | Suppresses notification counting; set explicitly or inherited by child sessions. |
+
+`silent` can be set when a session is created and otherwise inherits from its parent. Internal background sessions use the explicit flag when their completion should not count as user-visible unread work.
+
+When a root task reaches a normal terminal assistant reply, `Session.recordCompletionNotice()` increments `unreadCount` and sets `unread` to `true`. Successful replies then publish `SessionEvent.Completion` with `{ sessionID, unreadCount }`; error replies retain the durable unread state but publish only `SessionEvent.Error`, preventing duplicate success and error notifications. Archived and silent sessions skip both the increment and completion event. If an aborted run ends before producing any assistant message, its synthetic aborted assistant does not record a completion notice or publish either notification event. `SessionEvent.Error` may also omit `sessionID` for a global invocation failure that was not bound to a session.
+
+The frontend clears the notice through `Session.clearCompletionNotice()`, which resets `unread` to `false` and `unreadCount` to `0`. Clearing does not emit `SessionEvent.Completion`.
+
+The `session.completion` event is the durable success-notification signal. It is emitted once per successfully completed root task, independently of the lifecycle `session.idle` event. A session that completes a task, remains busy for additional work, and then finally idles will fire `session.completion` for each successful root task and `session.idle` once when the loop releases ownership.
+
+Legacy persisted records that have `unread === true` and `silent !== true` but lack `unreadCount` are normalized to `unreadCount = 1` at the read boundary and by the persisted `SessionMigration.migrateSessionCompletionNotice` upgrade. Fresh sessions start with `unreadCount = 0`.
+
 Session metadata is not the message transcript. Each has its own storage and events.
+
+### Global identity and endpoint lookup
+
+`sessionID` is globally stable. `Session.get(sessionID)` resolves `data/session_index/<sessionID>` to the owning Scope and then reads `data/sessions/<scopeID>/<sessionID>/info`; callers do not form a composite `(scopeID, sessionID)` identity.
+
+Channel endpoint lookup is a secondary global index from endpoint key to candidate `sessionID` values. The endpoint facade requires the provider's resolved Scope and verifies that the active Session belongs to it. A mismatch fails without moving, reusing, or creating a second Session in another Scope. Endpoint creation and archive share one hashed lock, so one endpoint has at most one active Session while retaining archived history.
 
 ## Session Lineage
 
@@ -120,11 +146,13 @@ Downstream loop, compaction, history, and frontend code read canonical fields. T
 
 When a paginated result contains a non-root message whose root lies outside the page, session history loading adds the missing root record so consumers do not lose task identity.
 
-Transcript consumers use the ordered message array as the chronology. Current message IDs are monotonic, but persisted sessions may contain legacy stable delivery IDs whose lexical order is unrelated to creation time. Both full and model-working-set read boundaries restore those records by `time.created`; loop, rollback, fork, and other positional logic must not compare raw message IDs to decide whether one message is before or after another.
+Transcript consumers use the ordered message array as the chronology. `time.created` records when a message enters the transcript; message IDs provide stable identity and only break ties between messages with the same creation time. Inbox delivery may pre-allocate a message ID before materialization, so loop, rollback, fork, compaction, pagination, and other positional logic must not compare raw message IDs to decide whether one message is before or after another.
 
 ## Message Page API
 
 `Session.messagePage()` and `GET /session/:sessionID/message/page` (`operationId: session.messagePage`) provide additive cursor-based pagination over effective session history. The existing `Session.messages()` and `GET /session/:sessionID/message` remain unchanged and are the correct path for runtime loops, export, preview, and flat consumers that need the complete message array or a simple tail slice.
+
+Pagination scans lightweight message info to establish effective history, cursor position, and referenced roots, then hydrates parts only for the selected page and those roots with bounded concurrency. Legacy records whose canonical semantics depend on parts are hydrated during read-time derivation; current records outside the requested page are not.
 
 ### Query parameters
 
@@ -192,6 +220,16 @@ Attachments are durable parts with separate model and presentation policies. Mod
 
 Inline data and returned tool attachments are externalized to the Asset store as `asset://` references when appropriate. Provider file IDs remain provider inputs; local paths remain explicit workspace references. Repeated historical images are deduplicated and bounded during model projection without removing their transcript parts. Asset routes validate IDs inside the Asset root rather than accepting arbitrary filesystem paths.
 
+### Assistant context usage
+
+Assistant messages may include an optional `contextUsage` snapshot for the completed provider call. The snapshot is additive message data, not a separate storage record or session aggregate.
+
+`contextUsage.version` is currently `1`. `totalInput` is the provider-reported exact input token total for that assistant step. The `conversation`, `toolActivity`, `filesReferences`, and `instructions` categories store model-tokenizer `estimatedTokens`, reconciled `attributedTokens`, and an optional item count. `overhead.attributedTokens` accounts for exact input tokens that were not attributed to a category. Provider/model identity, optional context and usable-input limits, estimator metadata, reconciliation mode, factor, and capture timestamp travel with the snapshot so the frontend can render it without recomputing prompt assembly.
+
+Older assistant messages that have only `tokens` remain totals-only history. Read-time canonicalization does not invent a category breakdown, and there is no storage migration or historical backfill for `contextUsage`.
+
+The Side Workspace Context panel reads this field from normal message synchronization. It may fall back to existing assistant token totals for exact latest-call usage, but category breakdown is available only when a persisted `contextUsage` snapshot exists.
+
 ## Turn Diffs
 
 Each user message may carry computed file-change diffs from the turn's snapshot/patch parts. Diffs are stored in `summary.diffs` on the `UserMessage` schema and surfaced to the frontend through the existing `message.updated` reconcile flow — no separate event, store, or route.
@@ -257,7 +295,7 @@ Every item has one scheduling axis:
 | `steer`   | Existing root | Materialized before the next `needsModelCall` decision. | Wakes the latest root if one exists.          |
 | `context` | Existing root | Piggybacks only after a model call is already required. | Remains stored and does not wake the session. |
 
-Stable delivery keys deduplicate inbox items independently from transcript message IDs. Materialization persists the assigned message ID, and task, steer, and context order remains stable through `orderKey`; legacy hash-based transcript IDs are supported only at the read boundary.
+Stable delivery keys deduplicate inbox items independently from transcript message IDs. Materialization persists the assigned message ID for idempotency, but the ID allocation time does not define transcript chronology. Task, steer, and context order remains stable through `orderKey`; message reads order materialized records by `time.created` with the message ID as a deterministic tie-break.
 
 Typical mappings:
 
@@ -272,9 +310,17 @@ On abort, steer and context items are discarded while queued task items remain f
 
 If a loop run fails while runnable inbox work remains, release still yields ownership but does not immediately request another drive cycle. The durable inbox item remains available for an explicit retry or a later delivery-triggered wake instead of entering a tight self-wake loop.
 
+## Message Chronology Index
+
+Message info records remain the canonical transcript and `time.created`, followed by message ID, remains the canonical chronology. `MessageV2.readInfoList()` reconstructs that complete order directly from message info for full-history consumers.
+
+Newest-first bounded readers use the derived `session_message_order_v1` index instead of eagerly parsing every message info. The index stores one sortable marker per message plus a ready/count state record. Message creation, chronology changes, removal, and permanent session deletion maintain it under a per-session write lock. Ordinary streaming updates whose `time.created` value is unchanged do not rewrite marker state.
+
+The index is not part of session export or canonical recovery state. Missing, incomplete, or internally inconsistent index state is rebuilt from canonical message infos before use; a non-ready state left by interruption also forces a rebuild. Consumers must not derive transcript semantics from marker filenames or treat the index as an independent message source.
+
 ## Model Context Projection
 
-`MessageV2.toModelMessage()` projects canonical session history into provider messages.
+`MessageV2.projectModelMessages()` projects canonical session history into provider messages and derives category hints from the same emitted branches. `PromptBudgeter.buildPlan()` may transform those messages for the selected provider; before streaming, `SessionInvoke` remaps the hints over the plan's final message array so removed content is not attributed and inserted or rewritten content follows its final role. `MessageV2.toModelMessage()` is the compatibility wrapper for callers that need only the messages.
 
 - messages with `includeInContext = false` are skipped;
 - compacted history is filtered at the compaction boundary;
@@ -283,6 +329,7 @@ If a loop run fails while runnable inbox work remains, release still yields owne
 - tool calls and results are emitted in provider-compatible order;
 - duplicate terminal tool parts from older histories are collapsed by provider call ID, preferring the execution outcome over an AI SDK fallback diagnostic;
 - workflow wrappers are applied ephemerally and do not rewrite stored user text.
+- errored-assistant filtering, canonical terminal tool selection, attachment fallback text, and historical-image placeholders apply identically to messages and provenance.
 
 Visible history and model context can therefore differ intentionally without losing the durable record.
 
@@ -324,7 +371,7 @@ When a running session is aborted, `signalAbort()` signals the owning controller
 
 `repairAfterAbort()` reads `SessionWorking.resolve()` (the same canonical check used at startup) to decide whether the repaired session is truly idle or still has active work (workflows, BlueprintLoops, incomplete assistants, or pending reply). It then publishes a status-only idle event through `SessionManager.publishStatusOnly()`, which emits `SessionEvent.Status` with `{ type: "idle" }` but never publishes `SessionEvent.Idle`.
 
-This separation exists because `SessionEvent.Idle` has side-effect consumers — `ContinuationKernel` for automatic loop wakeups and session completion notifications — that must not fire for repair-only status corrections. Lifecycle idle (`SessionEvent.Idle`) remains owned exclusively by `SessionManager.release()`, which publishes both `SessionEvent.Status` and `SessionEvent.Idle` when the runtime loop voluntarily yields ownership.
+This separation exists because `SessionEvent.Idle` has side-effect consumers — `ContinuationKernel` for automatic loop wakeups — that must not fire for repair-only status corrections. Lifecycle idle (`SessionEvent.Idle`) remains owned exclusively by `SessionManager.release()`, which publishes both `SessionEvent.Status` and `SessionEvent.Idle` when the runtime loop voluntarily yields ownership. Completion notifications are driven by the independent `SessionEvent.Completion` event emitted after each root task produces a terminal reply; they do not depend on `SessionEvent.Idle`.
 
 ## Invariants
 

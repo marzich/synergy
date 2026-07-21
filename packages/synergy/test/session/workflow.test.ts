@@ -15,7 +15,7 @@ async function withScope<T>(fn: () => Promise<T>): Promise<T> {
   return ScopeContext.provide({ scope, fn })
 }
 
-async function bindLoop(sessionID: string, source: "user" | "lattice" = "user") {
+async function bindLoop(sessionID: string, source: "user" | "lattice" | "plugin" = "user") {
   const loop = await BlueprintLoopStore.create({
     noteID: Identifier.ascending("note"),
     title: "Workflow Loop",
@@ -33,18 +33,80 @@ describe("SessionWorkflowService", () => {
     await withScope(async () => {
       const plan = await Session.create({})
       await SessionWorkflowService.enablePlan(plan.id)
-      await expect(SessionWorkflowService.enableLightloop(plan.id, "continue")).rejects.toThrow("plan workflow")
+      await expect(SessionWorkflowService.startLightloop(plan.id, "continue")).rejects.toThrow("plan workflow")
       await expect(SessionWorkflowService.enableLattice(plan.id, { kind: "lattice", mode: "auto" })).rejects.toThrow(
         "plan",
       )
 
       const lightloop = await Session.create({})
-      await SessionWorkflowService.enableLightloop(lightloop.id, "continue")
+      await SessionWorkflowService.startLightloop(lightloop.id, "continue")
       await expect(SessionWorkflowService.enablePlan(lightloop.id)).rejects.toThrow("lightloop")
 
       const lattice = await Session.create({})
       await SessionWorkflowService.enableLattice(lattice.id, { kind: "lattice", mode: "auto" })
       await expect(SessionWorkflowService.enablePlan(lattice.id)).rejects.toThrow("lattice")
+    })
+  })
+
+  test("updates active Light Loop instructions from the next model step", async () => {
+    await withScope(async () => {
+      const session = await Session.create({})
+      await SessionWorkflowService.startLightloop(session.id, "Original task")
+      const lease = SessionManager.acquire(session.id)
+      expect(lease).toBeDefined()
+
+      try {
+        const updated = await SessionWorkflowService.updateLightloopInstructions(session.id, "  Revised task  ")
+        expect(updated.workflow).toEqual({ kind: "lightloop", instructions: "Revised task" })
+      } finally {
+        await SessionManager.release(lease!, { requestNextWork: false })
+        SessionManager.unregisterRuntime(session.id)
+      }
+    })
+  })
+
+  test("rejects instruction updates while Light Loop review is pending", async () => {
+    await withScope(async () => {
+      const session = await Session.create({})
+      await SessionWorkflowService.startLightloop(session.id, "Original task")
+      await Session.update(session.id, (draft) => {
+        if (draft.workflow?.kind !== "lightloop") return
+        draft.workflow.stopRequest = {
+          summary: "Ready for review",
+          requestedAt: Date.now(),
+          requesterSessionID: session.id,
+          requesterMessageID: "msg_request",
+          reviewTaskID: "ctx_review",
+          reviewSessionID: "ses_review",
+        }
+      })
+
+      await expect(SessionWorkflowService.updateLightloopInstructions(session.id, "Revised task")).rejects.toThrow(
+        "review is pending",
+      )
+      const unchanged = await Session.get(session.id)
+      expect(unchanged.workflow?.kind === "lightloop" && unchanged.workflow.instructions).toBe("Original task")
+    })
+  })
+
+  test("cancels a running Light Loop and remains idempotent", async () => {
+    await withScope(async () => {
+      const session = await Session.create({})
+      await SessionWorkflowService.startLightloop(session.id, "Finish the task")
+      const lease = SessionManager.acquire(session.id)
+      expect(lease).toBeDefined()
+
+      try {
+        const cancelled = await SessionWorkflowService.cancelLightloop(session.id)
+        expect(lease!.signal.aborted).toBe(true)
+        expect(cancelled.workflow).toBeUndefined()
+
+        const repeated = await SessionWorkflowService.cancelLightloop(session.id)
+        expect(repeated.workflow).toBeUndefined()
+      } finally {
+        await SessionManager.release(lease!, { requestNextWork: false })
+        SessionManager.unregisterRuntime(session.id)
+      }
     })
   })
 
@@ -56,7 +118,7 @@ describe("SessionWorkflowService", () => {
 
       const lightloopSession = await Session.create({})
       await bindLoop(lightloopSession.id)
-      await expect(SessionWorkflowService.enableLightloop(lightloopSession.id, "continue")).rejects.toThrow(
+      await expect(SessionWorkflowService.startLightloop(lightloopSession.id, "continue")).rejects.toThrow(
         "BlueprintLoop",
       )
     })
@@ -141,7 +203,7 @@ describe("BlueprintLoop workflow source gates", () => {
   test("user loops clear idle Light Loop workflow when starting", async () => {
     await withScope(async () => {
       const session = await Session.create({})
-      await SessionWorkflowService.enableLightloop(session.id, "Finish this task")
+      await SessionWorkflowService.startLightloop(session.id, "Finish this task")
       const loop = await BlueprintLoopStore.create({
         noteID: "note_test",
         title: "Manual Loop",
@@ -193,6 +255,39 @@ describe("BlueprintLoop workflow source gates", () => {
 
       await expect(BlueprintLoopService.start(ScopeContext.current.scope.id, loop.id)).rejects.toThrow(
         "User BlueprintLoops",
+      )
+    })
+  })
+
+  test("plugin loops bind without inheriting lattice workflow requirements", async () => {
+    await withScope(async () => {
+      const session = await Session.create({})
+      const loop = await BlueprintLoopStore.create({
+        noteID: "note_plugin",
+        title: "Plugin Loop",
+        sessionID: session.id,
+        source: "plugin",
+        pluginOwner: {
+          pluginId: "focus",
+          pluginGeneration: "generation-one",
+          scopeId: ScopeContext.current.scope.id,
+        },
+      })
+
+      await BlueprintLoopService.bindSessionToLoop(session.id, loop.id, "execution")
+
+      const updated = await Session.get(session.id)
+      expect(updated.blueprint?.loopID).toBe(loop.id)
+    })
+  })
+
+  test("lattice cannot replace an active plugin BlueprintLoop", async () => {
+    await withScope(async () => {
+      const session = await Session.create({})
+      await bindLoop(session.id, "plugin")
+
+      await expect(SessionWorkflowService.enableLattice(session.id, { kind: "lattice", mode: "auto" })).rejects.toThrow(
+        "plugin BlueprintLoop",
       )
     })
   })

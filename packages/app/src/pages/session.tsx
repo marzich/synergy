@@ -9,7 +9,6 @@ import { useFile, type SelectedLineRange } from "@/context/file"
 import { createStore } from "solid-js/store"
 import { hasSpecialUserMessageRenderer } from "@ericsanchezok/synergy-ui/special-user-message"
 
-import { ResizeHandle } from "@ericsanchezok/synergy-ui/resize-handle"
 import { WORKSPACE_SESSION_MIN_WIDTH } from "@/context/layout/workspace"
 import { createAutoScroll } from "@ericsanchezok/synergy-ui/hooks"
 
@@ -39,14 +38,13 @@ import { useNavigateToSession } from "@/composables/use-navigate-to-session"
 import { replaceSessionHistoryUrl, sessionRouteReplaceOptions } from "@/composables/use-navigate-to-session-model"
 import { SessionConversation } from "@/components/session/conversation"
 import { PromptDock } from "@/components/session/prompt-dock"
-import { SessionContextPanel } from "@/components/session/session-context-panel"
 import { useWorkbenchPanels } from "@/context/workbench"
 import { useLocale } from "@/context/locale"
 import { AP } from "@/app-i18n"
 import { WorkspaceMobileHeader } from "@/components/workspace/mobile-header"
 import { WorkbenchSurface } from "@/components/workspace/workbench-surface"
 import { SessionTopBar } from "@/components/top-bar/session-top-bar"
-import { blueprintNoteWriteFocusRequest } from "@/context/plan-blueprint-offer"
+import { blueprintNoteCreateFocusRequest } from "@/context/plan-blueprint-offer"
 import {
   createWorkspaceTransitionErrorProgress,
   createWorkspaceTransitionLoadingProgress,
@@ -120,7 +118,6 @@ function SessionPageContent() {
   const workbench = useWorkbenchPanels()
   const sessionTransition = useSessionTransition()
   const sessionKey = createMemo(() => `${params.dir}${params.id ? "/" + params.id : ""}`)
-  const tabs = createMemo(() => layout.tabs(sessionKey()))
   const sideSurface = createMemo(() => layout.surface(sessionKey(), "side"))
   const bottomSurface = createMemo(() => layout.surface(sessionKey(), "bottom"))
   const sideOpen = createMemo(() => sideSurface().opened())
@@ -624,18 +621,17 @@ function SessionPageContent() {
   })
 
   const sessionMeta = useSessionMeta(currentSession, sessionHasMessages)
-
-  const focusedBlueprintWriteParts = new Set<string>()
-  const unsubBlueprintNoteWrite = sdk.event.on("message.part.updated", (event) => {
+  const focusedBlueprintCreateParts = new Set<string>()
+  const unsubBlueprintNoteCreate = sdk.event.on("message.part.updated", (event) => {
     const sessionID = params.id
     if (!sessionID) return
 
-    const request = blueprintNoteWriteFocusRequest(event.properties.part, sessionID)
+    const request = blueprintNoteCreateFocusRequest(event.properties.part, sessionID)
     if (!request) return
 
     const key = `${event.properties.part.sessionID}:${event.properties.part.id}:${request.noteID}`
-    if (focusedBlueprintWriteParts.has(key)) return
-    focusedBlueprintWriteParts.add(key)
+    if (focusedBlueprintCreateParts.has(key)) return
+    focusedBlueprintCreateParts.add(key)
 
     void workbench.openPanel("notes", {
       reuseExisting: true,
@@ -646,7 +642,7 @@ function SessionPageContent() {
       },
     })
   })
-  onCleanup(unsubBlueprintNoteWrite)
+  onCleanup(unsubBlueprintNoteCreate)
 
   createEffect(() => {
     const session = currentSession()
@@ -740,16 +736,6 @@ function SessionPageContent() {
       inputRef?.focus()
     }
   }
-
-  const contextOpen = createMemo(() => tabs().all().includes("context"))
-  const showTabs = contextOpen
-
-  createEffect(() => {
-    if (!layout.ready()) return
-    if (!contextOpen()) return
-    if (tabs().active() === "context") return
-    tabs().setActive("context")
-  })
 
   const isWorking = createMemo(() => status().type !== "idle")
   const autoScroll = createAutoScroll({
@@ -1060,12 +1046,8 @@ function SessionPageContent() {
       <div class="synergy-workbench-canvas relative bg-background-stronger size-full overflow-hidden flex flex-col">
         <div class="flex-1 min-h-0 flex flex-col md:flex-row relative">
           <div
-            class="session-workbench-pane synergy-workbench-canvas @container relative min-w-0 flex flex-col bg-background-stronger pt-3 pb-0 md:py-3"
-            classList={{
-              "flex-1": !(isDesktop() && showTabs()),
-            }}
+            class="session-workbench-pane synergy-workbench-canvas @container relative min-w-0 flex flex-1 flex-col bg-background-stronger pt-3 pb-0 md:py-3"
             style={{
-              width: isDesktop() && showTabs() ? `${layout.session.width()}px` : undefined,
               "min-width": isDesktop() && sideOpen() ? `${WORKSPACE_SESSION_MIN_WIDTH}px` : undefined,
               "--prompt-height": store.promptHeight ? `${store.promptHeight}px` : undefined,
             }}
@@ -1098,7 +1080,6 @@ function SessionPageContent() {
                           visibleUserMessages={visibleUserMessages}
                           lastUserMessage={lastRenderableUserMessage}
                           activeMessage={activeMessage}
-                          showTabs={showTabs}
                           isWorking={isWorking}
                           turnStart={store.turnStart}
                           turnBatch={turnBatch}
@@ -1213,7 +1194,6 @@ function SessionPageContent() {
                 inputRef = el
               }}
               isNewSession={isNewSession}
-              showTabs={showTabs}
               isGlobal={isHomeScope(sdk.scopeKey)}
               sessionID={params.id}
               prompt={prompt}
@@ -1239,30 +1219,10 @@ function SessionPageContent() {
               workspaceOpen={sideOpen}
               rollbackActive={rollbackActive()}
             />
-            <Show when={isDesktop() && showTabs() && !sideOpen()}>
-              <ResizeHandle
-                direction="horizontal"
-                size={layout.session.width()}
-                min={450}
-                max={window.innerWidth * 0.45}
-                onResize={layout.session.resize}
-              />
-            </Show>
           </div>
-
-          {/* Desktop tabs panel */}
-          <Show when={isDesktop() && showTabs()}>
-            <SessionContextPanel
-              tabs={tabs}
-              view={view}
-              messages={messages}
-              info={info}
-              visibleUserMessages={visibleUserMessages}
-            />
-          </Show>
           {/* Desktop side workspace */}
           <div class="hidden md:block">
-            <WorkbenchSurface surface="side" reservedWidth={contextOpen() ? 200 : 0} />
+            <WorkbenchSurface surface="side" />
           </div>
 
           {/* Mobile side workspace overlay */}
@@ -1281,7 +1241,7 @@ function SessionPageContent() {
         </Show>
         <Show when={!isDesktop() && store.mobileReviewOpen}>
           <div
-            class="md:hidden absolute inset-x-0 bottom-0 z-40 flex flex-col bg-background-stronger border-t border-border-weak-base rounded-t-xl shadow-[0_-4px_24px_rgba(0,0,0,0.15)]"
+            class="md:hidden absolute inset-x-0 bottom-0 z-40 flex flex-col bg-background-stronger border-t border-border-weak-base rounded-t-xl shadow-lg"
             style={{ height: "50vh" }}
           >
             <div class="flex items-center justify-between px-4 h-11 shrink-0">

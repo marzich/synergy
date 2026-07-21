@@ -33,7 +33,6 @@ import {
   scopeKeyForNavEntry,
   type SessionVisualStore,
 } from "@/components/sidebar/session-visual-state"
-import { ClarusSidebarSection } from "@/components/clarus/sidebar-section"
 import { SidebarAttentionNotice } from "./sidebar-attention-notice"
 import "./sidebar.css"
 
@@ -130,6 +129,7 @@ export function Sidebar(props: SidebarProps) {
   const [channelSectionOpen, setChannelSectionOpen] = createSignal(false)
   const [feishuGroupOpen, setFeishuGroupOpen] = createSignal(true)
   const [backgroundSectionOpen, setBackgroundSectionOpen] = createSignal(false)
+  const [githubSectionOpen, setGitHubSectionOpen] = createSignal(false)
   const [projectsFlyoutOpen, setProjectsFlyoutOpen] = createSignal(false)
   const [projectsSectionOpen, setProjectsSectionOpen] = createSignal(true)
 
@@ -468,9 +468,6 @@ export function Sidebar(props: SidebarProps) {
               onSessionClick={handleNavEntryClick}
             />
 
-            {/* Clarus */}
-            <ClarusSidebarSection activeSessionID={params.id} />
-
             {/* Channel */}
             <div class="sb-root-section">
               <div
@@ -542,6 +539,20 @@ export function Sidebar(props: SidebarProps) {
               activeID={params.id}
               onSessionClick={handleNavEntryClick}
             />
+
+            {/* GitHub */}
+            <Show when={layout.nav.githubConfigured()}>
+              <RootNavSection
+                title={_(sidebar.github)}
+                open={githubSectionOpen}
+                onToggle={() => setGitHubSectionOpen((value) => !value)}
+                entries={layout.nav.githubEntries()}
+                hasMore={layout.nav.hasMoreGitHub()}
+                onLoadMore={() => layout.nav.loadMoreGitHub()}
+                activeID={params.id}
+                onSessionClick={handleNavEntryClick}
+              />
+            </Show>
 
             {/* Projects */}
             <div class="sb-projects">
@@ -932,7 +943,7 @@ function SidebarSessionList(props: {
   )
 }
 
-// --- RootNavSection: reusable collapsible section for Home / Channel / Background ---
+// --- RootNavSection: reusable collapsible section for Home / Channel / Background / GitHub ---
 
 function RootNavSection(props: {
   title: string

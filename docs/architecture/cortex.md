@@ -22,15 +22,26 @@ The child session is the durable record. The in-memory task entry coordinates li
 
 Plugin-owned tasks additionally persist plugin ID, plugin generation, Scope ID, and a plugin-defined correlation ID. These fields let a plugin resume its own domain workflow without treating the in-memory Cortex map as durable state.
 
+The Plugin Task Host can resolve the task that owns the current invocation directly from this durable child-Session metadata. Ownership is committed before child execution begins, so an internal plugin tool can bind through the correlation ID even before the original `start()` call has returned to the plugin.
+
 ## Launch and Concurrency
 
-The `task` tool validates that the requested subagent is visible to the parent and permitted by its delegation policy. Cortex then creates a child session in the parent's `Scope` and workspace, or reuses an idle compatible child when reuse is requested. If a new worktree is requested, Cortex creates one for the child; a child of an existing worktree inherits that worktree instead of nesting another.
+Synergy has one Cortex launch mechanism and two authorization entry paths:
+
+- Model-directed delegation through the native `task` tool requires a non-hidden subagent that is visible to the caller and permitted by its delegation policy. The same predicate determines which Agents appear in the caller's prompt.
+- Host-owned workflows may programmatically launch a private hidden subagent after their owning subsystem establishes authorization. Built-in workflows own their internal Agents. A plugin owns only the Agent contributions resolved from that same plugin generation, and its approved `task.delegate` allowlist must include the target.
+
+Both paths enter `Cortex.launch()` and create the same Task and child Session. Plugins do not get a second Agent registry, task scheduler, transcript store, or execution loop.
+
+Cortex creates a child session in the parent's `Scope` and workspace, or reuses an idle compatible child when reuse is requested. If a new worktree is requested, Cortex creates one for the child; a child of an existing worktree inherits that worktree instead of nesting another.
 
 Tasks are admitted through both per-agent and process-global concurrency limits. Each concurrency key allows at most eight running tasks. The global maximum defaults to eight and can be set with the global `cortex.maxConcurrentTasks` configuration or overridden for the process by `SYNERGY_CORTEX_GLOBAL_CONCURRENCY`. Lowering the maximum does not cancel running tasks; it queues new work until capacity is available, while raising it wakes eligible queued work.
 
-Memory pressure produces a recommended global maximum of four under elevated pressure or two under critical pressure. This recommendation is observable but advisory: it never changes or overrides the configured, environment-provided, or default effective maximum. The read-only `cortex.concurrency` API reports configured, environment, effective, recommended, recommendation reason, source, per-agent, running, and queued values.
+Memory pressure applies a process-wide safety maximum of four under elevated pressure or two under critical pressure. ArrayBuffer pressure enters those states at 1 GiB and 2 GiB respectively, before the session GC thresholds at which Bun stream allocations may already fail. The configured, environment-provided, or default value remains the desired maximum; the scheduler uses the lower of that value and the active memory-pressure limit. Lowering the effective limit never cancels running work. The read-only `cortex.concurrency` API reports configured, environment, effective, memory-pressure limit and reason, source, per-agent, running, and queued values.
 
 An explicit task model wins. Otherwise Cortex resolves the selected agent's available model, with the parent's model available as the normal fallback path. The resolved model is persisted on the child session.
+
+The launcher can pass `maxOutputTokens` to cap the child session's model output and `maxCost` to discard task output when final measured usage exceeds a cost ceiling. `maxOutputTokens` is passed through to `SessionInvoke.invokeInternal()` for both the initial call and any structured-output repair turns; `maxCost` is checked before Cortex publishes terminal output. The GitHub shadow proposer uses both fields to enforce its proposal budget. When either field is absent, that per-task limit is not applied.
 
 ## Execution Roles and Tool Boundaries
 
@@ -40,6 +51,7 @@ The ordinary role is `delegated_subagent`. It is intentionally narrower than a p
 - task delegation and task inspection tools are removed
 - DAG mutation tools are removed
 - configured primary-only tools are removed
+- deferred tool discovery and expansion remain available, but they expose only tools already allowed by the selected agent's permission rules
 
 This keeps a delegated task bounded and prevents accidental recursive orchestration. Hidden internal reviewers can be given an explicit `delegationGroup` so they can call selected specialists while remaining hidden and unavailable as direct user targets.
 
@@ -49,9 +61,9 @@ The child still uses the normal session loop, control-profile resolution, capabi
 
 A background task returns its identity immediately and continues independently. A foreground task waits for the child result for up to 300 seconds. If the wait expires, the task keeps running in the background rather than being cancelled.
 
-Completion is event-driven. The parent does not need to poll `task_output` in a loop. When a synchronous waiter exists, Cortex resolves that waiter directly and durably suppresses the parent notification. Otherwise, an eligible visible task writes one `steer` item to the parent's persistent Inbox with a stable task-derived delivery key, then requests `SessionDrive` to process it. Hidden reviewer tasks normally suppress parent-facing task events and notifications.
+Completion uses a two-phase protocol (see "Two-Phase Completion Protocol" below). When a synchronous waiter exists, Cortex resolves that waiter directly and durably suppresses the parent notification. Otherwise, an eligible visible task writes one lightweight `steer` item to the parent's persistent Inbox with a stable task-derived delivery key, then requests `SessionDrive` to process it. The notification does NOT contain the final result — it tells the parent to retrieve it once with `task_output(mode="full")`. Hidden reviewer tasks normally suppress parent-facing task events and notifications.
 
-When the parent explicitly reads a terminal task through `task_output`, the persisted tool result acknowledges that task's completion under the same task-level notification lock: Cortex disables future notification recovery and removes the still-pending Inbox item. Reading live progress does not consume the future terminal notification.
+When the parent explicitly reads a terminal task through `task_output(mode="full")` (or the default mode), `afterPersist` calls `acknowledgeParentCompletion()`, which disables future notification recovery and removes the still-pending Inbox item. Diagnostic modes (`progress`, `tail`, `summary`) do **not** acknowledge completion; the notification persists until the parent retrieves the full result.
 
 ## Progress
 
@@ -74,6 +86,22 @@ The launcher selects one of three output modes:
 Structured output is implemented through an ephemeral result tool and JSON Schema validation. The caller can permit zero to three repair turns when a result does not validate. External agents do not support structured Cortex output.
 
 Large external-agent outputs are bounded while preserving useful head and tail content. Output normalization is part of task completion and is stored with the child session.
+
+## Two-Phase Completion Protocol
+
+Automatic completion is a two-phase protocol: **notification** and **result retrieval**.
+
+**Phase 1 — Notification**: When a background task reaches a terminal state and no synchronous waiter exists, Cortex writes one lightweight `steer` Inbox item to the parent session. The notification identifies the task and its outcome but does **not** contain the final result. The message instructs the parent to retrieve the result once with `task_output(task_id="...", mode="full")`. The notification is persisted idempotently with a stable task-derived delivery key, so a crash or restart before the parent reads it causes the notification to be re-requested rather than lost.
+
+**Phase 2 — Result retrieval and acknowledgement**: The parent reads the final result with `task_output(mode="full")` (or the default mode). This persisted read acknowledges the task completion: Cortex calls `acknowledgeParentCompletion()`, which sets `notifyParentOnComplete` to `false` on both the in-memory task entry and the durable child session, and removes the pending Inbox item. Future notification recovery is disabled for this task.
+
+**Diagnostic reads preserve notification**: Modes `progress`, `tail`, and `summary` are one-shot snapshots for live status inspection. They do **not** call `acknowledgeParentCompletion()`, do not clear the Inbox item, and do not suppress future notifications. The notification persists until the parent explicitly retrieves the full result. This prevents a diagnostic poll from silently consuming the wake-up.
+
+**block=true is full-only**: The `block` parameter is valid only with `mode="full"` or the default mode. Diagnostic modes with `block=true` are rejected at the Zod schema level.
+
+**Foreground path**: A synchronous waiter (foreground `task()` or `task_output` with `block=true`) receives the result directly through `Cortex.waitFor()`. When a synchronous waiter exists, parent notification is durably suppressed (`notifyParentOnComplete = false`), making delivery and acknowledgement mutually exclusive per task.
+
+**Durable output after eviction**: The in-memory task entry is eventually compacted and evicted, but the child session remains the durable record. After eviction, `task_output(mode="full")` can still retrieve terminal output from the child session's persisted Cortex metadata, including its `output` field and terminal `status`. This means the parent can retrieve a task's result even after the live task handle has been removed.
 
 ## Delivery to the Parent
 
@@ -101,8 +129,11 @@ Visible terminal tasks keep their live task record long enough for clients to ob
 ## Invariants
 
 - Delegation creates a child session; it does not splice child messages into the parent history.
+- Hidden Agents stay out of model prompts and native `task` targets; host-owned invocation does not make them visible.
+- Plugin-owned private Agents are resolved and authorized by plugin ID plus generation before entering the ordinary Cortex path.
 - Parent and child retain an explicit hierarchy through `parentID` and Cortex metadata.
 - An ordinary delegated subagent cannot recursively delegate or ask the user for permission.
+- Tool expansion changes child-session exposure only; it never grants a deferred tool denied by agent or session permissions.
 - Backgrounding changes who waits; it does not change the task's execution or persistence.
 - Output mode is an explicit contract, not a best-effort prompt convention.
 - Cancellation covers descendant tasks and runtime resources without deleting durable history.

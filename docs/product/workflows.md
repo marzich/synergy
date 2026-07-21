@@ -35,7 +35,7 @@ BlueprintLoop binds a specific Blueprint version to an execution session. It res
 
 The execution agent reads the full Blueprint and any run-specific start instruction, then continues until it can provide concrete completion evidence. A normal assistant response does not finish the loop. On idle, Synergy wakes a running loop to continue.
 
-When the executor believes the outcome is complete, it requests an audit. Synergy launches a hidden reviewer session, normally using `supervisor`, which inspects the Blueprint, start instruction, execution history, artifacts, workspace state, and verification evidence.
+When the executor believes the outcome is complete, it requests an audit. Synergy launches a reviewer Cortex task, normally using `supervisor`, which appears in the execution session's Subagent Dock and inspects the Blueprint, start instruction, execution history, artifacts, workspace state, and verification evidence.
 
 The reviewer has two outcomes:
 
@@ -50,12 +50,13 @@ Starting a user-owned BlueprintLoop exits Plan or Light Loop when the session is
 
 Light Loop is the smaller persistence workflow. It records one task description and wakes the same session whenever the agent becomes idle after a valid terminal response. The agent repeatedly checks the requested deliverables, current work, verification evidence, errors, and edge cases.
 
-Completion is a review request, not a claim. Calling `loop_stop` launches a hidden `lightloop-reviewer` child session and pauses generic continuation while review is pending.
+Completion is a review request, not a claim. Calling `loop_stop` launches a visible `lightloop-reviewer` Cortex child in the Subagent Dock and pauses generic continuation while review is pending.
 
 - approval clears the Light Loop workflow and reports the verdict
 - rejection records the review attempt, clears the pending stop request, and delivers actionable remaining work so the loop continues
 
 Light Loop does not require an authored Blueprint or a multi-step Pathway. Use it for one task whose scope is already sufficiently clear.
+When Light Loop is armed, the composer shows its workflow chip. After the first message commits the workflow, a task control also appears beside Submit. Click that control to inspect the task; it is editable while the session is idle and read-only while the session is running, completion review is pending, or the workflow has exited elsewhere. Hold it for two seconds to stop active work, cancel completion review, and exit Light Loop safely.
 
 ## Lattice and the Pathway
 

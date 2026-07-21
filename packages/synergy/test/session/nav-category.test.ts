@@ -94,6 +94,43 @@ describe("SessionNav.deriveCategory", () => {
     expect(cat).toBe("channel")
   })
 
+  // ── GitHub provenance ─────────────────────────────────────────────────
+  test("GitHub provenance maps to the GitHub category", () => {
+    const cat = SessionNav.deriveCategory({
+      scopeType: "project",
+      endpointKind: undefined,
+      provenance: "github",
+      parentID: undefined,
+      cortex: undefined,
+      agenda: undefined,
+    })
+    expect(cat).toBe("github")
+  })
+
+  test("GitHub provenance takes precedence over generic background signals", () => {
+    const cat = SessionNav.deriveCategory({
+      scopeType: "project",
+      endpointKind: undefined,
+      provenance: "github",
+      parentID: "ses_parent",
+      cortex: undefined,
+      agenda: undefined,
+    })
+    expect(cat).toBe("github")
+  })
+
+  test("channel endpoints take precedence over GitHub provenance", () => {
+    const cat = SessionNav.deriveCategory({
+      scopeType: "home",
+      endpointKind: "channel",
+      provenance: "github",
+      parentID: "ses_parent",
+      cortex: undefined,
+      agenda: undefined,
+    })
+    expect(cat).toBe("channel")
+  })
+
   // ── Background (child / cortex / agenda) ──────────────────────────────
   test("background: child session with parentID maps to background", () => {
     const cat = SessionNav.deriveCategory({
@@ -206,8 +243,8 @@ describe("SessionNav.deriveCategory", () => {
     expect(cat).toBe("project")
   })
 
-  // ── Type narrowing (5 categories exist) ────────────────────────────────
-  const validCategories = ["project", "home", "channel", "background", "clarus"] as const
+  // ── Type narrowing ────────────────────────────────────────────────────
+  const validCategories = ["project", "home", "channel", "background", "github"] as const
 
   test("deriveCategory never returns a separate channel category name", () => {
     // Channel sessions must return "channel", never anything else
@@ -252,50 +289,4 @@ describe("SessionNav.deriveCategory", () => {
     expect(validCategories).toContain(cat)
     expect(cat).toBe("background")
   })
-})
-
-// ── Clarus endpoint category ──────────────────────────────────────────
-
-test("clarus endpoint kind maps to clarus", () => {
-  const cat = SessionNav.deriveCategory({
-    scopeType: "project",
-    endpointKind: "clarus",
-    parentID: undefined,
-    cortex: undefined,
-    agenda: undefined,
-  })
-  expect(cat).toBe("clarus")
-})
-
-test("clarus sessions are never exposed as channel", () => {
-  // Even with channel-like signals, clarus overrides (but channel wins in deriveCategory)
-  const cat = SessionNav.deriveCategory({
-    scopeType: "project",
-    endpointKind: "clarus",
-    parentID: undefined,
-    cortex: undefined,
-    agenda: undefined,
-  })
-  expect(cat).not.toBe("channel")
-})
-
-test("clarus with parentID remains in the clarus category", () => {
-  const cat = SessionNav.deriveCategory({
-    scopeType: "project",
-    endpointKind: "clarus",
-    parentID: "ses_parent123",
-    cortex: undefined,
-    agenda: undefined,
-  })
-  expect(cat).toBe("clarus")
-})
-
-test("clarus endpoint kind is a valid argument to deriveCategory", () => {
-  // Type-level verification: clarify that DeriveCategoryInput accepts clarus
-  const input: Parameters<typeof SessionNav.deriveCategory>[0] = {
-    scopeType: "project",
-    endpointKind: "clarus",
-  }
-  const cat = SessionNav.deriveCategory(input)
-  expect(cat).toBe("clarus")
 })

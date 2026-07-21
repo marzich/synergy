@@ -93,6 +93,9 @@ import { ComposerSlotOutlet } from "@ericsanchezok/synergy-ui/composer-slots"
 import { useLocale } from "@/context/locale"
 import { translateDescriptor } from "@/locales/translate"
 import { PI } from "./prompt-input-i18n"
+import { EditLightLoopDialog } from "./edit-light-loop-dialog"
+import { LightLoopSubmitControl } from "./light-loop-submit-control"
+import { WorktreeUnavailableDialog } from "./worktree-unavailable-dialog"
 
 function sanitizePromptHistory(value: unknown) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return value
@@ -166,7 +169,7 @@ function WorkflowChip(props: {
 
 export const PromptInput: Component<PromptInputProps> = (props) => {
   const sdk = useSDK()
-  const latticeDialog = useDialog()
+  const workflowDialog = useDialog()
   const globalSync = useGlobalSync()
   const sync = useSync()
   const input = useInput()
@@ -204,9 +207,14 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
   const blueprintModeLocked = createMemo(() => !!localArmedLoop() || !!info()?.blueprint?.loopID)
   const lightLoopActive = createMemo(() => !blueprintModeLocked() && storedLightLoop())
-  const lightLoopTaskDesc = createMemo(() => {
+  const lightLoopInstructions = createMemo(() => {
     const workflow = activeWorkflow()
-    return params.id && workflow?.kind === "lightloop" ? workflow.taskDescription : undefined
+    return params.id && workflow?.kind === "lightloop" ? workflow.instructions : undefined
+  })
+  const persistedLightLoopActive = createMemo(() => activeWorkflow()?.kind === "lightloop")
+  const lightLoopReviewPending = createMemo(() => {
+    const workflow = activeWorkflow()
+    return workflow?.kind === "lightloop" && !!workflow.stopRequest
   })
   const storedPlan = createMemo(() => (params.id ? activeWorkflow()?.kind === "plan" : pendingPlan()))
   const planActive = createMemo(() => !blueprintModeLocked() && storedPlan())
@@ -668,7 +676,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       event?.preventDefault()
       return
     }
-    latticeDialog.show(() => <LatticeConfigDialog sdk={sdk as any} sessionID={params.id} onEnable={enableLattice} />)
+    workflowDialog.show(() => <LatticeConfigDialog sdk={sdk as any} sessionID={params.id} onEnable={enableLattice} />)
   }
 
   const selectLatticeFromMenu = (event?: Event) => {
@@ -712,10 +720,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       return true
     }
     try {
-      await sdk.client.workflow.session.set({
-        id: params.id,
-        workflowSetInput: { kind: "none" },
-      })
+      await sdk.client.workflow.session.cancelLightloop({ id: params.id })
       setPendingLightLoop(false)
       return true
     } catch (err) {
@@ -738,6 +743,44 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
   const cancelLightLoop = async () => {
     await setLightLoop(false)
+  }
+
+  const safelyCancelLightLoop = async () => {
+    if (!params.id) return
+    try {
+      const cancelled = await setLightLoop(false)
+      if (!cancelled) return
+      showToast({
+        type: "info",
+        title: i18n._(PI.lightLoopStopped),
+        description: i18n._(PI.lightLoopStoppedDesc),
+      })
+    } catch {
+      return
+    }
+  }
+
+  const updateLightLoopInstructions = async (instructions: string) => {
+    const sessionID = params.id
+    if (!sessionID) throw new Error(i18n._(PI.lightLoopSessionUnavailable))
+    await sdk.client.workflow.session.updateLightloop({
+      id: sessionID,
+      lightloopUpdateInput: { instructions },
+    })
+  }
+
+  const openLightLoopDialog = () => {
+    const workflow = activeWorkflow()
+    if (!params.id || workflow?.kind !== "lightloop") return
+    workflowDialog.show(() => (
+      <EditLightLoopDialog
+        instructions={workflow.instructions}
+        active={persistedLightLoopActive}
+        working={working}
+        reviewPending={lightLoopReviewPending}
+        onSave={updateLightLoopInstructions}
+      />
+    ))
   }
 
   const sessionHasMessages = createMemo(() => {
@@ -800,7 +843,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             id: "light-loop",
             label: i18n._(PI.workflowLightLoop),
             description: lightLoopActive()
-              ? (lightLoopTaskDesc() ?? i18n._(PI.lightLoopNextMsg))
+              ? (lightLoopInstructions() ?? i18n._(PI.lightLoopNextMsg))
               : i18n._(PI.workflowLightLoopDesc),
             icon: getSemanticIcon("prompt.lightLoop"),
             selected: lightLoopActive(),
@@ -1498,6 +1541,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     abort,
     editor: () => editorRef,
     queueScroll,
+    onWorktreeUnavailable: () => workflowDialog.show(() => <WorktreeUnavailableDialog />),
   })
 
   createEffect(() => {
@@ -1929,6 +1973,15 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                         />
                       </button>
                     </Tooltip>
+                  )}
+                </Show>
+                <Show when={lightLoopInstructions()}>
+                  {(instructions) => (
+                    <LightLoopSubmitControl
+                      instructions={instructions()}
+                      onEdit={openLightLoopDialog}
+                      onCancel={safelyCancelLightLoop}
+                    />
                   )}
                 </Show>
                 <Tooltip

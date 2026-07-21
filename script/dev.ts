@@ -8,7 +8,8 @@ import { randomBytes } from "node:crypto"
 const DEFAULT_SERVER_PORT = 4096
 const DEFAULT_APP_PORT = 3000
 const DEFAULT_HOSTNAME = "127.0.0.1"
-const DEFAULT_APP_HOST = "127.0.0.1"
+const DEV_PROCESS_OWNER_ENV = "SYNERGY_DEV_PROCESS_OWNER"
+const devProcessOwners = new WeakMap<object, string>()
 
 export interface DevProcessSpec {
   label:
@@ -71,8 +72,8 @@ function serverUrl(hostname: string, port: number) {
   return `http://${displayHost(hostname)}:${port}`
 }
 
-function appUrl(port: number) {
-  return `http://${DEFAULT_APP_HOST}:${port}`
+function appUrl(hostname: string, port: number) {
+  return `http://${displayHost(hostname)}:${port}`
 }
 
 function directories(repoRoot: string) {
@@ -160,7 +161,7 @@ Options:
   --port <port>           Port for bun dev server/app
   --server-port <port>    Server port for web/desktop (default: 4096)
   --app-port <port>       Vite app port for web/desktop (default: 3000)
-  --hostname <host>       Server bind hostname (default: 127.0.0.1)
+  --hostname <host>       Server and Vite bind hostname (default: 127.0.0.1)
   --attach <url>          Reuse an existing server instead of starting one
   --open                  Open the browser for bun dev app
   --no-open               Do not open the browser for bun dev web
@@ -205,18 +206,24 @@ function serverProcess(input: {
   }
 }
 
-function appProcess(input: { repoRoot: string; bunPath: string; appPort: number; attachUrl: string }): DevProcessSpec {
+function appProcess(input: {
+  repoRoot: string
+  bunPath: string
+  appPort: number
+  attachUrl: string
+  hostname: string
+}): DevProcessSpec {
   const dirs = directories(input.repoRoot)
   const server = normalizeUrl(input.attachUrl)
   return {
     label: "app",
-    command: [input.bunPath, "run", "dev", "--host", DEFAULT_APP_HOST, "--port", String(input.appPort), "--strictPort"],
+    command: [input.bunPath, "run", "dev", "--host", input.hostname, "--port", String(input.appPort), "--strictPort"],
     cwd: dirs.app,
     env: {
       VITE_SYNERGY_SERVER_URL: server,
       VITE_SYNERGY_CALLBACK_URL: `${server}/holos/callback`,
     },
-    waitUrl: appUrl(input.appPort),
+    waitUrl: appUrl(input.hostname, input.appPort),
   }
 }
 
@@ -225,6 +232,7 @@ function desktopProcess(input: {
   bunPath: string
   mode: "external" | "managed"
   appPort?: number
+  appHostname?: string
   browserServerUrl?: string
   browserHostSecret?: string
 }): DevProcessSpec {
@@ -236,7 +244,8 @@ function desktopProcess(input: {
     SYNERGY_BROWSER_HOST_REGISTRATION_SECRET: input.browserHostSecret,
     SYNERGY_BROWSER_BROKER_SERVER_URL: input.browserServerUrl,
   }
-  if (input.mode === "external") env.SYNERGY_DESKTOP_APP_URL = appUrl(input.appPort ?? DEFAULT_APP_PORT)
+  if (input.mode === "external")
+    env.SYNERGY_DESKTOP_APP_URL = appUrl(input.appHostname ?? DEFAULT_HOSTNAME, input.appPort ?? DEFAULT_APP_PORT)
   return {
     label: "desktop",
     command: [input.bunPath, "run", "dev"],
@@ -323,6 +332,7 @@ export function createDevPlan(args: string[], options: PlanOptions = {}): DevPla
 
   if (command === "app") {
     const appPort = numberFlag(parsed.flags, "port", DEFAULT_APP_PORT)
+    const hostname = stringFlag(parsed.flags, "hostname", DEFAULT_HOSTNAME)
     const attachUrl = normalizeUrl(stringFlag(parsed.flags, "attach", serverUrl(DEFAULT_HOSTNAME, DEFAULT_SERVER_PORT)))
     return {
       kind: "run",
@@ -330,9 +340,9 @@ export function createDevPlan(args: string[], options: PlanOptions = {}): DevPla
       command,
       help,
       exitCode: 0,
-      processes: [appProcess({ repoRoot, bunPath, appPort, attachUrl })],
-      openUrl: boolFlag(parsed.flags, "open") ? appUrl(appPort) : undefined,
-      requiredPorts: [{ label: "app", port: appPort, host: DEFAULT_APP_HOST }],
+      processes: [appProcess({ repoRoot, bunPath, appPort, attachUrl, hostname })],
+      openUrl: boolFlag(parsed.flags, "open") ? appUrl(hostname, appPort) : undefined,
+      requiredPorts: [{ label: "app", port: appPort, host: displayHost(hostname) }],
       requiredServers: [attachUrl],
     }
   }
@@ -357,7 +367,7 @@ export function createDevPlan(args: string[], options: PlanOptions = {}): DevPla
               browserHostSecret,
             }),
           ]),
-      appProcess({ repoRoot, bunPath, appPort, attachUrl }),
+      appProcess({ repoRoot, bunPath, appPort, attachUrl, hostname }),
       ...(attach ? [] : [browserHostProcess({ repoRoot, bunPath, serverUrl: attachUrl, secret: browserHostSecret })]),
     ]
     return {
@@ -367,10 +377,10 @@ export function createDevPlan(args: string[], options: PlanOptions = {}): DevPla
       help,
       exitCode: 0,
       processes,
-      openUrl: boolFlag(parsed.flags, "open", true) ? appUrl(appPort) : undefined,
+      openUrl: boolFlag(parsed.flags, "open", true) ? appUrl(hostname, appPort) : undefined,
       requiredPorts: [
         ...(attach ? [] : [{ label: "server", port: serverPort, host: displayHost(hostname) }]),
-        { label: "app", port: appPort, host: DEFAULT_APP_HOST },
+        { label: "app", port: appPort, host: displayHost(hostname) },
       ],
       requiredServers: attach ? [attachUrl] : [],
     }
@@ -417,12 +427,13 @@ export function createDevPlan(args: string[], options: PlanOptions = {}): DevPla
               browserHostSecret,
             }),
           ]),
-      appProcess({ repoRoot, bunPath, appPort, attachUrl }),
+      appProcess({ repoRoot, bunPath, appPort, attachUrl, hostname }),
       desktopProcess({
         repoRoot,
         bunPath,
         mode: "external",
         appPort,
+        appHostname: hostname,
         browserServerUrl: attach ? undefined : attachUrl,
         browserHostSecret: attach ? undefined : browserHostSecret,
       }),
@@ -436,7 +447,7 @@ export function createDevPlan(args: string[], options: PlanOptions = {}): DevPla
       processes,
       requiredPorts: [
         ...(attach ? [] : [{ label: "server", port: serverPort, host: displayHost(hostname) }]),
-        { label: "app", port: appPort, host: DEFAULT_APP_HOST },
+        { label: "app", port: appPort, host: displayHost(hostname) },
       ],
       requiredServers: attach ? [attachUrl] : [],
     }
@@ -563,14 +574,16 @@ function prefixedStream(
 }
 
 export function spawnDevProcess(spec: DevProcessSpec) {
+  const owner = randomBytes(16).toString("hex")
   const proc = Bun.spawn(spec.command, {
     cwd: spec.cwd,
-    env: { ...process.env, ...(spec.env ?? {}) },
+    env: { ...process.env, ...(spec.env ?? {}), [DEV_PROCESS_OWNER_ENV]: owner },
     stdin: "inherit",
     stdout: "pipe",
     stderr: "pipe",
     detached: process.platform !== "win32",
   })
+  devProcessOwners.set(proc, owner)
   prefixedStream(proc.stdout, spec.label, (chunk) => process.stdout.write(chunk))
   prefixedStream(proc.stderr, spec.label, (chunk) => process.stderr.write(chunk))
   return proc
@@ -584,32 +597,75 @@ async function taskkill(pid: number): Promise<void> {
   await proc.exited
 }
 
-function signalProcessTree(child: DevProcess, signal: "SIGTERM" | "SIGKILL"): void {
-  const pid = child.pid
-  if (!pid) return
+function signalProcessGroup(processGroupId: number, signal: "SIGTERM" | "SIGKILL"): void {
   try {
-    process.kill(-pid, signal)
-  } catch {
-    if (child.exitCode === null) child.kill(signal)
-  }
+    process.kill(-processGroupId, signal)
+  } catch {}
 }
 
-function processGroupExists(pid: number): boolean {
+function processGroupExists(processGroupId: number): boolean {
   try {
-    process.kill(-pid, 0)
+    process.kill(-processGroupId, 0)
     return true
   } catch {
     return false
   }
 }
 
-async function waitForProcessGroupExit(pid: number, timeoutMs: number): Promise<boolean> {
+async function waitForProcessGroupExit(processGroupId: number, timeoutMs: number): Promise<boolean> {
   const deadline = Date.now() + timeoutMs
-  while (processGroupExists(pid)) {
+  while (processGroupExists(processGroupId)) {
     if (Date.now() >= deadline) return false
     await Bun.sleep(25)
   }
   return true
+}
+
+function descendantProcessGroups(children: DevProcess[]): number[] {
+  const activeRoots = children.flatMap((child) => (child.exitCode === null && child.pid ? [child.pid] : []))
+  const ownerMarkers = children.flatMap((child) => {
+    const owner = devProcessOwners.get(child)
+    return owner ? [`${DEV_PROCESS_OWNER_ENV}=${owner}`] : []
+  })
+  const groups = new Set(activeRoots)
+  const result = (() => {
+    try {
+      const includeNoTty = process.platform === "darwin" ? "-x" : "x"
+      return Bun.spawnSync(["ps", "eww", includeNoTty, "-o", "pid=,ppid=,pgid=,command="], {
+        stdin: "ignore",
+        stdout: "pipe",
+        stderr: "ignore",
+      })
+    } catch {
+      return undefined
+    }
+  })()
+  if (!result || result.exitCode !== 0) return [...groups]
+
+  const processes = new Map<number, { parentPid: number; processGroupId: number }>()
+  const descendants = new Set(activeRoots)
+  for (const line of result.stdout.toString().split("\n")) {
+    const match = line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/)
+    if (!match) continue
+    const pid = Number(match[1])
+    const process = { parentPid: Number(match[2]), processGroupId: Number(match[3]) }
+    processes.set(pid, process)
+    if (!ownerMarkers.some((marker) => match[4].includes(marker))) continue
+    descendants.add(pid)
+    groups.add(process.processGroupId)
+  }
+
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const [pid, process] of processes) {
+      if (descendants.has(pid) || !descendants.has(process.parentPid)) continue
+      descendants.add(pid)
+      groups.add(process.processGroupId)
+      changed = true
+    }
+  }
+  return [...groups]
 }
 
 export async function terminateDevProcesses(children: DevProcess[]): Promise<void> {
@@ -620,23 +676,45 @@ export async function terminateDevProcesses(children: DevProcess[]): Promise<voi
     return
   }
 
-  for (const child of active) signalProcessTree(child, "SIGTERM")
+  const processGroups = descendantProcessGroups(children)
+  for (const processGroupId of processGroups) signalProcessGroup(processGroupId, "SIGTERM")
   const settle = Promise.allSettled(children.map((child) => child.exited))
-  await Promise.all(active.flatMap((child) => (child.pid ? [waitForProcessGroupExit(child.pid, 3000)] : [])))
-  for (const child of active) {
-    if (child.pid && processGroupExists(child.pid)) signalProcessTree(child, "SIGKILL")
+  await Promise.all(processGroups.map((processGroupId) => waitForProcessGroupExit(processGroupId, 3000)))
+  for (const processGroupId of processGroups) {
+    if (processGroupExists(processGroupId)) signalProcessGroup(processGroupId, "SIGKILL")
   }
-  await Promise.all(active.flatMap((child) => (child.pid ? [waitForProcessGroupExit(child.pid, 1000)] : [])))
+  await Promise.all(processGroups.map((processGroupId) => waitForProcessGroupExit(processGroupId, 1000)))
   await Promise.race([settle, Bun.sleep(1000)])
 }
 
 async function runSerial(processes: DevProcessSpec[]): Promise<number> {
-  for (const spec of processes) {
-    const proc = spawnDevProcess(spec)
-    const exitCode = await proc.exited
-    if (exitCode !== 0) return exitCode
+  const children: DevProcess[] = []
+  let exiting = false
+  let cleanupPromise: Promise<void> | undefined
+  const cleanup = () => (cleanupPromise ??= terminateDevProcesses(children))
+  const handleSignal = (exitCode: number) => async () => {
+    if (exiting) return
+    exiting = true
+    await cleanup()
+    process.exit(exitCode)
   }
-  return 0
+  const handleSigint = handleSignal(130)
+  const handleSigterm = handleSignal(143)
+  process.once("SIGINT", handleSigint)
+  process.once("SIGTERM", handleSigterm)
+  try {
+    for (const spec of processes) {
+      const proc = spawnDevProcess(spec)
+      children.push(proc)
+      const exitCode = await proc.exited
+      if (exitCode !== 0) return exitCode
+    }
+    return 0
+  } finally {
+    process.off("SIGINT", handleSigint)
+    process.off("SIGTERM", handleSigterm)
+    await cleanup()
+  }
 }
 
 async function runParallel(plan: DevPlan): Promise<number> {
@@ -718,7 +796,6 @@ async function runPrepare(repoRoot: string, bunPath: string): Promise<number> {
   }
   const target = platform === "linux" ? "linux" : "windows"
   const sandbox = await runSerial([
-    { label: "sandbox", command: ["cargo", "build", "--release"], cwd: helperDir },
     {
       label: "sandbox",
       command: [bunPath, "run", "packages/synergy/scripts/build-helper.ts", target, "--local"],

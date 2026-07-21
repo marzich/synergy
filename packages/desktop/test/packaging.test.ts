@@ -22,6 +22,7 @@ interface ElectronBuilderConfig {
   deb?: {
     afterInstall?: string
     afterRemove?: string
+    depends?: string[]
   }
   extraResources?: Array<{
     from?: string
@@ -79,6 +80,7 @@ describe("desktop packaging", () => {
     expect(config.nsis?.include).toBe("build/installer.nsh")
     expect(config.deb?.afterInstall).toBe("build/linux/deb-after-install.sh")
     expect(config.deb?.afterRemove).toBe("build/linux/deb-after-remove.sh")
+    expect(config.deb?.depends).toContain("bubblewrap")
   })
 
   test("Windows installer publishes only the launcher directory, not runtime internals", async () => {
@@ -86,6 +88,7 @@ describe("desktop packaging", () => {
 
     expect(nsisScript).toContain("$INSTDIR\\bin\\synergy.cmd")
     expect(nsisScript).toContain("$INSTDIR\\resources\\synergy\\bin\\synergy.exe")
+    expect(nsisScript).toContain(String.raw`FileWrite $0 "$\"$INSTDIR\resources\synergy\bin\synergy.exe$\" %*$\r$\n"`)
     expect(nsisScript).toContain("WriteRegExpandStr HKCU")
     expect(nsisScript).toContain("$INSTDIR\\bin")
     expect(nsisScript).not.toContain("WriteRegExpandStr HKLM")
@@ -97,6 +100,8 @@ describe("desktop packaging", () => {
 
     expect(nsisScript).toContain("Call PathHasEntry")
     expect(nsisScript).toContain("StrCmp $R6 $R1 found")
+    expect(nsisScript).toContain("!ifndef BUILD_UNINSTALLER\nFunction PathHasEntry")
+    expect(nsisScript).toContain("!ifdef BUILD_UNINSTALLER\nFunction un.RemovePathEntry")
     expect(nsisScript).not.toContain("Call StrStr")
   })
 

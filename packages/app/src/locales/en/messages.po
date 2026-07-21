@@ -31,19 +31,19 @@ msgstr "{count} more lines"
 
 #. js-lingui-explicit-id
 msgid "anysearch.title.batch-search"
-msgstr "Anysearch Batch"
+msgstr "Batch search with Anysearch"
 
 #. js-lingui-explicit-id
 msgid "anysearch.title.domains"
-msgstr "Search Domains"
+msgstr "View search domains"
 
 #. js-lingui-explicit-id
 msgid "anysearch.title.extract"
-msgstr "Anysearch Extract"
+msgstr "Extract content with Anysearch"
 
 #. js-lingui-explicit-id
 msgid "anysearch.title.search"
-msgstr "Anysearch"
+msgstr "Search with Anysearch"
 
 #. Runtime Lingui descriptors for agenda host labels and wrappers.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
@@ -556,11 +556,11 @@ msgstr "Advisor"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.apiCompatibilityReviewer"
-msgstr "API Compatibility"
+msgstr "API Compatibility Reviewer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.apiContractDesigner"
-msgstr "API Contract"
+msgstr "API Contract Designer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.claudeCode"
@@ -568,7 +568,7 @@ msgstr "Claude Code"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.codeCartographer"
-msgstr "Code Map"
+msgstr "Code Cartographer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.codex"
@@ -576,7 +576,7 @@ msgstr "Codex"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.dependencyTracer"
-msgstr "Dependency Trace"
+msgstr "Dependency Tracer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.developer"
@@ -584,27 +584,27 @@ msgstr "Developer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.docsResearcher"
-msgstr "Docs Research"
+msgstr "Docs Researcher"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.documentationEngineer"
-msgstr "Docs"
+msgstr "Documentation Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.documentationReviewer"
-msgstr "Doc Review"
+msgstr "Documentation Reviewer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.explore"
-msgstr "Explore"
+msgstr "Explorer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.fixtureBuilder"
-msgstr "Fixtures"
+msgstr "Fixture Builder"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.implementationEngineer"
-msgstr "Implementation"
+msgstr "Implementation Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.inspector"
@@ -612,7 +612,7 @@ msgstr "Inspector"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.integrationEngineer"
-msgstr "Integration"
+msgstr "Integration Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.literatureAnalyst"
@@ -620,23 +620,23 @@ msgstr "Literature Analyst"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.literatureSearcher"
-msgstr "Literature Search"
+msgstr "Literature Searcher"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.maintainabilityReviewer"
-msgstr "Maintainability"
+msgstr "Maintainability Reviewer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.memoryCurator"
-msgstr "Memory"
+msgstr "Memory Curator"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.migrationArchitect"
-msgstr "Migration"
+msgstr "Migration Architect"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.noteLibrarian"
-msgstr "Notes"
+msgstr "Note Librarian"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.openClaw"
@@ -644,31 +644,31 @@ msgstr "OpenClaw"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.performanceReviewer"
-msgstr "Performance"
+msgstr "Performance Reviewer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.propertyTestEngineer"
-msgstr "Property Tests"
+msgstr "Property Test Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.pythonQualityEngineer"
-msgstr "Python Quality"
+msgstr "Python Quality Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.qualityGatekeeper"
-msgstr "Quality Gate"
+msgstr "Quality Gatekeeper"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.refactoringEngineer"
-msgstr "Refactor"
+msgstr "Refactoring Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.requirementsEngineer"
-msgstr "Requirements"
+msgstr "Requirements Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.researchMethodologist"
-msgstr "Research Method"
+msgstr "Research Methodologist"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.researchScout"
@@ -676,7 +676,7 @@ msgstr "Research Scout"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.rustQualityEngineer"
-msgstr "Rust Quality"
+msgstr "Rust Quality Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.scholar"
@@ -692,11 +692,11 @@ msgstr "Scribe"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.securityReviewer"
-msgstr "Security"
+msgstr "Security Reviewer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.sessionHistorian"
-msgstr "Session History"
+msgstr "Session Historian"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.solutionArchitect"
@@ -716,15 +716,15 @@ msgstr "Synergy Max"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.testStrategist"
-msgstr "Test Strategy"
+msgstr "Test Strategist"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.typescriptQualityEngineer"
-msgstr "TS Quality"
+msgstr "TypeScript Quality Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.role.typeTestEngineer"
-msgstr "Type Tests"
+msgstr "Type Test Engineer"
 
 #. ── Agent Visual ─────────────────────────────────────────────────────────────
 msgid "app.agent.visual.defaultLabel"
@@ -1114,150 +1114,6 @@ msgstr "W"
 msgid "app.cancel"
 msgstr "Cancel"
 
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.action.refresh"
-msgstr "Refresh"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.action.retry"
-msgstr "Retry"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.connection.connected"
-msgstr "Connected"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.connection.connecting"
-msgstr "Connecting…"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.connection.disabled"
-msgstr "Disabled"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.connection.reconnecting"
-msgstr "Reconnecting"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.connection.signInRequired"
-msgstr "Sign In Required"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.connection.syncFailed"
-msgstr "Sync Failed"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.empty.navigation"
-msgstr "No navigation data available"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.empty.projects"
-msgstr "No projects available"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.empty.sidebarProjects"
-msgstr "No Clarus projects"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.empty.tasks"
-msgstr "No tasks yet"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.error.loadFailed"
-msgstr "Failed to load Clarus data"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.freshness.stale"
-msgstr "(stale)"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.group.active"
-msgstr "Active"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.group.history"
-msgstr "History"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.loading"
-msgstr "Loading Clarus…"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.project.collapse"
-msgstr "Collapse Clarus project"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.project.expand"
-msgstr "Expand Clarus project"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.result.status.acknowledged"
-msgstr "Acknowledged"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.result.status.ambiguous"
-msgstr "Ambiguous"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.result.status.dispatched"
-msgstr "Dispatched"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.result.status.localOnly"
-msgstr "Local only"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.result.status.notDispatched"
-msgstr "Not dispatched"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.result.status.prepared"
-msgstr "Prepared"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.result.status.rejected"
-msgstr "Rejected"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.subtitle"
-msgstr "Native project and task navigation"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.task.status.cancelled"
-msgstr "Cancelled"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.task.status.expired"
-msgstr "Expired"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.task.status.failed"
-msgstr "Failed"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.task.status.needsAttention"
-msgstr "Needs attention"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.task.status.running"
-msgstr "Running"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.task.status.submitted"
-msgstr "Submitted"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.task.status.submitting"
-msgstr "Submitting"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.task.status.waiting"
-msgstr "Waiting"
-
-#. ── Clarus ───────────────────────────────────────────────────────────────────
-msgid "app.clarus.title"
-msgstr "Clarus"
-
 #. Runtime Lingui descriptors for app shell, entry, commands, and pages.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "app.command.category.suggested"
@@ -1292,6 +1148,270 @@ msgstr "Cancel"
  * with its own content.
 msgid "app.common.confirm"
 msgstr "Confirm"
+
+#. js-lingui-explicit-id
+msgid "app.context.action.copied"
+msgstr "Copied"
+
+#. js-lingui-explicit-id
+msgid "app.context.action.copy"
+msgstr "Copy"
+
+#. js-lingui-explicit-id
+msgid "app.context.action.copyFailed"
+msgstr "Copy failed"
+
+#. js-lingui-explicit-id
+msgid "app.context.breakdown.estimatedTokens"
+msgstr "Estimated {tokens}"
+
+#. js-lingui-explicit-id
+msgid "app.context.breakdown.estimateNote"
+msgstr "Category values are model-tokenizer estimates reconciled to the exact provider input total."
+
+#. js-lingui-explicit-id
+msgid "app.context.breakdown.exactInputShare"
+msgstr "{percent} of exact input"
+
+#. js-lingui-explicit-id
+msgid "app.context.breakdown.itemCount"
+msgstr "{count, plural, one {# item} other {# items}}"
+
+#. js-lingui-explicit-id
+msgid "app.context.breakdown.title"
+msgstr "What’s taking space"
+
+#. js-lingui-explicit-id
+msgid "app.context.breakdown.unavailable"
+msgstr "Breakdown available after the next response"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.conversation"
+msgstr "Conversation"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.conversation.description"
+msgstr "User and assistant text, including reasoning"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.filesReferences"
+msgstr "Files and references"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.filesReferences.description"
+msgstr "Attachments, file summaries, and provider-file references"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.instructions"
+msgstr "Instructions"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.instructions.description"
+msgstr "Agent, project, workflow, memory, and runtime guidance"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.overhead"
+msgstr "Overhead"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.overhead.description"
+msgstr "Provider formatting, opaque file usage, and estimation variance"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.toolActivity"
+msgstr "Tool activity"
+
+#. js-lingui-explicit-id
+msgid "app.context.category.toolActivity.description"
+msgstr "Tool definitions, calls, results, and errors"
+
+#. js-lingui-explicit-id
+msgid "app.context.compact.action"
+msgstr "Compact conversation"
+
+#. js-lingui-explicit-id
+msgid "app.context.compact.hint"
+msgstr "Compact the conversation to recover context space."
+
+#. js-lingui-explicit-id
+msgid "app.context.dataAccess.description"
+msgstr "Inspect normalized persisted messages and the latest user system override."
+
+#. js-lingui-explicit-id
+msgid "app.context.dataAccess.rawMessages"
+msgstr "View raw messages"
+
+#. js-lingui-explicit-id
+msgid "app.context.dataAccess.title"
+msgstr "Data access"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.cacheReadWrite"
+msgstr "Cache read / write"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.contextUsage"
+msgstr "Context usage"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.contextWindow"
+msgstr "Context window"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.latestCallCost"
+msgstr "Latest-call cost"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.latestCallTotal"
+msgstr "Latest-call total"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.latestOutputReasoning"
+msgstr "Latest output / reasoning"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.loadedMessagesCost"
+msgstr "Loaded messages cost"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.model"
+msgstr "Model"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.provider"
+msgstr "Provider"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.remainingInput"
+msgstr "Remaining input"
+
+#. js-lingui-explicit-id
+msgid "app.context.details.usage"
+msgstr "Usage details"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.assistantMessages"
+msgstr "Assistant messages"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.attributedTotal"
+msgstr "Attributed total"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.estimatedAttributed"
+msgstr "{category} estimated / attributed"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.estimatorEncoding"
+msgstr "Estimator encoding"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.estimatorKind"
+msgstr "Estimator kind"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.lastActivity"
+msgstr "Last activity"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.messages"
+msgstr "Messages"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.rawEstimatedTotal"
+msgstr "Raw estimated total"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.reconciliationFactor"
+msgstr "Reconciliation factor"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.reconciliationMode"
+msgstr "Reconciliation mode"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.sessionCreated"
+msgstr "Session created"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.sessionID"
+msgstr "Session ID"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.sessionTitle"
+msgstr "Session title"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.title"
+msgstr "Developer details"
+
+#. js-lingui-explicit-id
+msgid "app.context.developer.userMessages"
+msgstr "User messages"
+
+#. js-lingui-explicit-id
+msgid "app.context.instructions.copy"
+msgstr "Copy user system override"
+
+#. js-lingui-explicit-id
+msgid "app.context.instructions.copyFailed"
+msgstr "Unable to copy user system override."
+
+#. js-lingui-explicit-id
+msgid "app.context.instructions.empty"
+msgstr "No user system override is available."
+
+#. js-lingui-explicit-id
+msgid "app.context.instructions.latestUserOverride"
+msgstr "Latest user system override"
+
+#. js-lingui-explicit-id
+msgid "app.context.model.label"
+msgstr "Model {model}"
+
+#. js-lingui-explicit-id
+msgid "app.context.session.untitled"
+msgstr "Untitled session"
+
+#. js-lingui-explicit-id
+msgid "app.context.status.compacted"
+msgstr "Conversation compacted; usage available after the next response"
+
+#. js-lingui-explicit-id
+msgid "app.context.status.compacting"
+msgstr "Compacting conversation…"
+
+#. js-lingui-explicit-id
+msgid "app.context.status.critical"
+msgstr "Very little context space remains"
+
+#. js-lingui-explicit-id
+msgid "app.context.status.partiallyKnown"
+msgstr "Context size is partially known"
+
+#. js-lingui-explicit-id
+msgid "app.context.status.ready"
+msgstr "Enough room to continue"
+
+#. js-lingui-explicit-id
+msgid "app.context.status.warning"
+msgstr "This context is getting full"
+
+#. js-lingui-explicit-id
+msgid "app.context.usage.limitUnknown"
+msgstr "Context limit unknown"
+
+#. js-lingui-explicit-id
+msgid "app.context.usage.percentUsed"
+msgstr "{percent} used"
+
+#. js-lingui-explicit-id
+msgid "app.context.usage.tokensRemaining"
+msgstr "{tokens} remaining"
+
+#. js-lingui-explicit-id
+msgid "app.context.usage.usedInput"
+msgstr "Used input"
 
 #. Confirm
 msgid "app.dialog.confirm.actionFailed"
@@ -2281,7 +2401,11 @@ msgstr "Arm Lattice for this message"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.budget"
-msgstr "Model-call budget (0 = unlimited)"
+msgstr "Model-call budget"
+
+#. js-lingui-explicit-id
+msgid "app.lattice.config.budgetDescription"
+msgstr "The budget is checked before Lattice continues; it counts model calls in this Lattice session, not Pathway steps. Enter 0 for no budget."
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.continueExisting"
@@ -2293,7 +2417,7 @@ msgstr "current"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.description"
-msgstr "Lattice runs your goal as a recursive Blueprint: it plans an ordered Pathway and executes each step as a BlueprintLoop. Auto keeps advancing on its own; Collaborative pauses after each Blueprint for your review."
+msgstr "Lattice turns your goal into an ordered Pathway and executes each step through a BlueprintLoop. Advance autonomously keeps planning and executing without waiting for review. Work with you pauses before each Blueprint executes so you can review it or add instructions."
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.enable"
@@ -2313,19 +2437,19 @@ msgstr "What should this Lattice run accomplish?"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.mode"
-msgstr "Mode"
+msgstr "How Lattice runs"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.mode.auto"
-msgstr "Auto"
+msgstr "Advance autonomously"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.mode.collaborative"
-msgstr "Collaborative"
+msgstr "Work with you"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.modelCalls"
-msgstr "model calls"
+msgstr "Model calls"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.nextMessageGoal"
@@ -2340,12 +2464,20 @@ msgid "app.lattice.config.restart"
 msgstr "Restart"
 
 #. js-lingui-explicit-id
+msgid "app.lattice.config.stepsCompleted"
+msgstr "{done}/{total} steps completed"
+
+#. js-lingui-explicit-id
 msgid "app.lattice.config.title"
-msgstr "Lattice mode"
+msgstr "Configure Lattice"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.config.unknownError"
 msgstr "Unknown error"
+
+#. js-lingui-explicit-id
+msgid "app.lattice.config.unlimited"
+msgstr "Unlimited"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.panel.blueprintReview"
@@ -2357,7 +2489,7 @@ msgstr "Discuss or edit the Blueprint in chat. Messages are treated as discussio
 
 #. js-lingui-explicit-id
 msgid "app.lattice.panel.calls"
-msgstr "calls"
+msgstr "Model calls"
 
 #. js-lingui-explicit-id
 msgid "app.lattice.panel.continue"
@@ -3267,6 +3399,10 @@ msgstr "Library"
 msgid "app.name.synergy"
 msgstr "Synergy"
 
+#. js-lingui-explicit-id
+msgid "app.note.blueprint.pluginOwner"
+msgstr "From {plugin}"
+
 #. ── Note panel ───────────────────────────────────────────────────────────────
 msgid "app.note.blueprint.runMode.active"
 msgstr "Active run"
@@ -3839,9 +3975,25 @@ msgstr "View all {count} notes"
 msgid "app.note.untitled"
 msgstr "Untitled"
 
+#. ── Notifications ────────────────────────────────────────────────────────────
+msgid "app.notification.error.fallback"
+msgstr "An error occurred"
+
+#. ── Notifications ────────────────────────────────────────────────────────────
+msgid "app.notification.response.ready"
+msgstr "Response ready"
+
+#. ── Notifications ────────────────────────────────────────────────────────────
+msgid "app.notification.session.error"
+msgstr "Session error"
+
 #. ── Builtin panel labels ─────────────────────────────────────────────────────
 msgid "app.panel.browser"
 msgstr "Browser"
+
+#. ── Builtin panel labels ─────────────────────────────────────────────────────
+msgid "app.panel.context"
+msgstr "Context"
 
 #. ── Builtin panel labels ─────────────────────────────────────────────────────
 msgid "app.panel.files"
@@ -3988,7 +4140,7 @@ msgstr "CPU and event loop"
 #. Runtime Lingui descriptors for performance host labels and wrappers.
  *  Translate at use time via `useLingui()._(descriptor)`.
 msgid "app.performance.chart.memory.desc"
-msgstr "RSS, heap used, and heap total as memory gauges in MB"
+msgstr "RSS, heap, external, and ArrayBuffer memory gauges in MB"
 
 #. Runtime Lingui descriptors for performance host labels and wrappers.
  *  Translate at use time via `useLingui()._(descriptor)`.
@@ -4039,6 +4191,31 @@ msgstr "Storage metrics are not available for this range"
  *  Translate at use time via `useLingui()._(descriptor)`.
 msgid "app.performance.chart.storage.title"
 msgstr "Storage I/O"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.dataset.arrayBuffers"
+msgstr "ArrayBuffers"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.dataset.external"
+msgstr "External"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.dataset.heapTotal"
+msgstr "Heap total"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.dataset.heapUsed"
+msgstr "Heap used"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.dataset.rss"
+msgstr "RSS"
 
 #. empty states
 msgid "app.performance.empty.default"
@@ -4196,6 +4373,16 @@ msgstr "healthy"
 
 #. Runtime Lingui descriptors for performance host labels and wrappers.
  *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.runtime.llmStreams"
+msgstr "LLM streams"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.runtime.llmStreamsValue"
+msgstr "{streams} streams · {turns} turns"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
 msgid "app.performance.runtime.lock"
 msgstr "Runtime lock"
 
@@ -4212,6 +4399,16 @@ msgstr "Not running"
 #. runtime support values
 msgid "app.performance.runtime.lockStateUnknown"
 msgstr "Unknown"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.runtime.messageCache"
+msgstr "Message cache"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.runtime.messageCacheValue"
+msgstr "{bytes} · {entries} entries ({active} active) · {hits}/{misses} hit/miss · {evictions} evictions · {protected} protected over budget · largest {largest}"
 
 #. Runtime Lingui descriptors for performance host labels and wrappers.
  *  Translate at use time via `useLingui()._(descriptor)`.
@@ -4274,6 +4471,11 @@ msgstr "Performance snapshot"
 
 #. Runtime Lingui descriptors for performance host labels and wrappers.
  *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.summary.arrayBuffers"
+msgstr "ArrayBuffers"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
 msgid "app.performance.summary.cpu"
 msgstr "CPU"
 
@@ -4302,9 +4504,19 @@ msgstr "{read} read · {write} write"
 msgid "app.performance.summary.eventLoop"
 msgstr "Event loop p95"
 
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.summary.external"
+msgstr "External"
+
 #. summary cards
 msgid "app.performance.summary.health"
 msgstr "Health"
+
+#. Runtime Lingui descriptors for performance host labels and wrappers.
+ *  Translate at use time via `useLingui()._(descriptor)`.
+msgid "app.performance.summary.heapUsed"
+msgstr "Heap used"
 
 #. Runtime Lingui descriptors for performance host labels and wrappers.
  *  Translate at use time via `useLingui()._(descriptor)`.
@@ -4488,10 +4700,6 @@ msgid "app.plugin.builtin.agenda"
 msgstr "Agenda"
 
 #. ── Plugin builtin navigation ─────────────────────────────────────────────────
-msgid "app.plugin.builtin.clarus"
-msgstr "Clarus"
-
-#. ── Plugin builtin navigation ─────────────────────────────────────────────────
 msgid "app.plugin.builtin.library"
 msgstr "Library"
 
@@ -4504,32 +4712,92 @@ msgid "app.plugin.builtin.plugins"
 msgstr "Plugins"
 
 #. js-lingui-explicit-id
-msgid "app.plugin.consent.approveInstall"
-msgstr "Approve & Install"
+msgid "app.plugin.consent.addedGroup"
+msgstr "Added {group}"
 
 #. js-lingui-explicit-id
-msgid "app.plugin.consent.deny"
-msgstr "Deny"
+msgid "app.plugin.consent.approvalFailed"
+msgstr "Approval failed"
 
 #. js-lingui-explicit-id
-msgid "app.plugin.consent.description"
-msgstr "{plugin} {version} requests the following permissions."
+msgid "app.plugin.consent.approvalRequired"
+msgstr "This plugin requires your approval."
 
 #. js-lingui-explicit-id
-msgid "app.plugin.consent.emptyPermissions"
-msgstr "No specific permissions declared."
+msgid "app.plugin.consent.approving"
+msgstr "Approving..."
 
 #. js-lingui-explicit-id
-msgid "app.plugin.consent.riskSummary"
-msgstr "This plugin requires your approval to install"
+msgid "app.plugin.consent.current.empty"
+msgstr "No existing permissions are unchanged."
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.current.title"
+msgstr "Current permissions"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.dialog.description"
+msgstr "{plugin} {version}. {description}"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.install.approve"
+msgstr "Approve & install"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.install.description"
+msgstr "Review the permissions before installing this plugin."
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.install.title"
+msgstr "Approve Plugin Install"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.manifestChanged"
+msgstr "Permissions are unchanged, but the plugin manifest changed. Review the metadata before approving."
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.notNow"
+msgstr "Not now"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.reapprove.approve"
+msgstr "Approve & reload"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.reapprove.description"
+msgstr "Review the current plugin manifest before reloading it."
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.reapprove.title"
+msgstr "Review Plugin Permissions"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.removed.empty"
+msgstr "No permissions are being removed."
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.removed.title"
+msgstr "Removed permissions"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.reviewChanged"
+msgstr "Plugin changed while you were reviewing it"
 
 #. js-lingui-explicit-id
 msgid "app.plugin.consent.severityChanges"
 msgstr "Severity changes"
 
 #. js-lingui-explicit-id
-msgid "app.plugin.consent.title"
-msgstr "Install Plugin"
+msgid "app.plugin.consent.update.approve"
+msgstr "Approve & update"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.update.description"
+msgstr "Review the permission changes before updating this plugin."
+
+#. js-lingui-explicit-id
+msgid "app.plugin.consent.update.title"
+msgstr "Approve Plugin Update"
 
 #. js-lingui-explicit-id
 msgid "app.plugin.detail.action.install"
@@ -4542,6 +4810,14 @@ msgstr "Installed v{version}"
 #. js-lingui-explicit-id
 msgid "app.plugin.detail.action.installing"
 msgstr "Installing..."
+
+#. js-lingui-explicit-id
+msgid "app.plugin.detail.action.loadingReview"
+msgstr "Loading review..."
+
+#. js-lingui-explicit-id
+msgid "app.plugin.detail.action.reviewPermissions"
+msgstr "Review permissions"
 
 #. js-lingui-explicit-id
 msgid "app.plugin.detail.action.uninstall"
@@ -4633,7 +4909,7 @@ msgstr "Capabilities"
 
 #. js-lingui-explicit-id
 msgid "app.plugin.detail.section.capabilitiesSummary"
-msgstr "{tools} tools · {surfaces} UI surfaces"
+msgstr "{tools} tools · {operations} operations · {surfaces} UI surfaces"
 
 #. js-lingui-explicit-id
 msgid "app.plugin.detail.section.developmentRegistration"
@@ -4690,6 +4966,10 @@ msgstr "Active"
 #. js-lingui-explicit-id
 msgid "app.plugin.detail.state.disabled"
 msgstr "Disabled"
+
+#. js-lingui-explicit-id
+msgid "app.plugin.detail.state.needsApproval"
+msgstr "Needs approval"
 
 #. js-lingui-explicit-id
 msgid "app.plugin.detail.version.installedLocally"
@@ -4852,18 +5132,6 @@ msgid "app.plugin.marketplace.row.pluginDisabled"
 msgstr "Plugin disabled"
 
 #. js-lingui-explicit-id
-msgid "app.plugin.marketplace.row.state.development"
-msgstr "Development"
-
-#. js-lingui-explicit-id
-msgid "app.plugin.marketplace.row.state.disabled"
-msgstr "Disabled"
-
-#. js-lingui-explicit-id
-msgid "app.plugin.marketplace.row.state.installed"
-msgstr "Installed"
-
-#. js-lingui-explicit-id
 msgid "app.plugin.marketplace.row.tools"
 msgstr "{count} tools"
 
@@ -4894,6 +5162,18 @@ msgstr "Local registry"
 #. js-lingui-explicit-id
 msgid "app.plugin.marketplace.source.official"
 msgstr "Official"
+
+#. ── Plugin marketplace ────────────────────────────────────────────────────────
+msgid "app.plugin.marketplace.status.active"
+msgstr "Active"
+
+#. ── Plugin marketplace ────────────────────────────────────────────────────────
+msgid "app.plugin.marketplace.status.disabled"
+msgstr "Disabled"
+
+#. ── Plugin marketplace ────────────────────────────────────────────────────────
+msgid "app.plugin.marketplace.status.needsApproval"
+msgstr "Needs approval"
 
 #. js-lingui-explicit-id
 msgid "app.plugin.marketplace.title"
@@ -5162,6 +5442,118 @@ msgstr "{provider} models are now available to use."
 #. ── Provider Connection Flow ─────────────────────────────────────────────────
 msgid "app.provider.toast.reconnected"
 msgstr "reconnected"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.back"
+msgstr "Messages"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.copy.copied"
+msgstr "Copied"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.copy.current"
+msgstr "Copy current message"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.copy.currentFailed"
+msgstr "Unable to copy the current raw session message."
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.copy.failed"
+msgstr "Copy failed"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.copy.selected"
+msgstr "Copy selected raw messages"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.copy.selectedCount"
+msgstr "Copy {count, plural, one {# selected message} other {# selected messages}}"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.copy.selectedFailed"
+msgstr "Unable to copy selected raw session messages."
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.count"
+msgstr "{count, plural, one {# message} other {# messages}}"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.empty"
+msgstr "No messages."
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.error.load"
+msgstr "Couldn’t load messages."
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.flag.excluded"
+msgstr "Excluded"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.flag.hidden"
+msgstr "Hidden"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.list.label"
+msgstr "Raw session messages"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.loadEarlier"
+msgstr "Load earlier"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.loading"
+msgstr "Loading…"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.notice.sensitive"
+msgstr "May include prompts, tool inputs, file contents, and model output. Copy carefully."
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.preview.empty"
+msgstr "Choose a message to inspect."
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.preview.wrap"
+msgstr "Wrap lines"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.refresh"
+msgstr "Refresh raw messages"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.refresh.short"
+msgstr "Refresh"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.retry"
+msgstr "Retry"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.role.assistant"
+msgstr "Assistant"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.role.user"
+msgstr "User"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.selection.clear"
+msgstr "Clear selection"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.selection.message"
+msgstr "Select {role} {id}"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.selection.selectAll"
+msgstr "Select all loaded messages"
+
+#. js-lingui-explicit-id
+msgid "app.rawMessages.title"
+msgstr "Raw messages"
 
 #. ── components/scopes/active-zone.tsx ────────────────────────────────
 msgid "app.scopes.activeZone.active"
@@ -5709,6 +6101,10 @@ msgstr "Background"
 #. ── Sidebar ──────────────────────────────────────────────────────────────────
 msgid "app.sidebar.section.channel"
 msgstr "Channel"
+
+#. ── Sidebar ──────────────────────────────────────────────────────────────────
+msgid "app.sidebar.section.github"
+msgstr "GitHub"
 
 #. ── Sidebar ──────────────────────────────────────────────────────────────────
 msgid "app.sidebar.section.home"
@@ -6409,8 +6805,32 @@ msgid "app.statusBar.connections.server.unknown"
 msgstr "unknown"
 
 #. ── Status Bar ───────────────────────────────────────────────────────────────
+msgid "app.statusBar.context.clickHint"
+msgstr "click for Context"
+
+#. ── Status Bar ───────────────────────────────────────────────────────────────
+msgid "app.statusBar.context.inputTokens"
+msgstr "input tokens"
+
+#. ── Status Bar ───────────────────────────────────────────────────────────────
+msgid "app.statusBar.context.limitUnknown"
+msgstr "limit unknown"
+
+#. ── Status Bar ───────────────────────────────────────────────────────────────
+msgid "app.statusBar.context.openAria"
+msgstr "Open Context, {tokens} input tokens, {usage}"
+
+#. ── Status Bar ───────────────────────────────────────────────────────────────
 msgid "app.statusBar.context.usage"
 msgstr "{tokens} {count, plural, one {token} other {tokens}} · {percentage} used"
+
+#. ── Status Bar ───────────────────────────────────────────────────────────────
+msgid "app.statusBar.context.usageKnown"
+msgstr "{percent} used"
+
+#. ── Status Bar ───────────────────────────────────────────────────────────────
+msgid "app.statusBar.context.usageUnavailable"
+msgstr "usage unavailable"
 
 #. ── Status Bar ───────────────────────────────────────────────────────────────
 msgid "app.statusBar.details"
@@ -6890,7 +7310,7 @@ msgstr "{providerName} needs sign-in"
 
 #. ── Body primitives ─────────────────────────────────────────────────
 msgid "body-primitives.conflict-detail"
-msgstr "{count} file or region{count, plural, one {} other {s}} may need resolution before anchored edits."
+msgstr "{count} file or region{count, plural, one {} other {s}} may need resolution before precise edits."
 
 #. ── Body primitives ─────────────────────────────────────────────────
 msgid "body-primitives.conflict-title"
@@ -6906,143 +7326,143 @@ msgstr "Holos"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.action"
-msgstr "Action"
+msgstr "Operate page"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.annotate"
-msgstr "Annotate"
+msgstr "Annotate page"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.assets"
-msgstr "Assets"
+msgstr "Inspect page assets"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.audit"
-msgstr "Audit"
+msgstr "Audit page"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.browser-view"
-msgstr "Browser View"
+msgstr "View browser"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.clipboard"
-msgstr "Clipboard"
+msgstr "Read or write clipboard"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.console"
-msgstr "Console"
+msgstr "Inspect console"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.dialog"
-msgstr "Dialog"
+msgstr "Handle page dialog"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.downloads"
-msgstr "Downloads"
+msgstr "Inspect downloads"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.emulate"
-msgstr "Emulate"
+msgstr "Emulate device"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.evaluate"
-msgstr "Evaluate"
+msgstr "Evaluate page script"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.inspect"
-msgstr "Inspect"
+msgstr "Inspect page"
 
 #. Browser
 msgid "browser.title.navigation"
-msgstr "Navigation"
+msgstr "Navigate web"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.network"
-msgstr "Network"
+msgstr "Inspect network requests"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.performance"
-msgstr "Performance"
+msgstr "Analyze page performance"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.read"
-msgstr "Read"
+msgstr "Read page"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.screenshot"
-msgstr "Screenshot"
+msgstr "Capture screenshot"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.snapshot"
-msgstr "Snapshot"
+msgstr "Capture page snapshot"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.upload"
-msgstr "Upload"
+msgstr "Upload file"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "browser.title.wait"
-msgstr "Wait"
+msgstr "Wait for page"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.analyze"
-msgstr "Analyze"
+msgstr "Analyze content"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.blueprint"
-msgstr "Blueprint"
+msgstr "Manage Blueprints"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.browser"
-msgstr "Browser"
+msgstr "Control browser"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.communication"
-msgstr "Send"
+msgstr "Send content"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.community"
-msgstr "Agora"
+msgstr "Access Agora"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.config"
-msgstr "Config"
+msgstr "Change settings"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.dag"
-msgstr "DAG"
+msgstr "Manage DAG"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.file-read"
-msgstr "Read"
+msgstr "Read file"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.file-write"
-msgstr "Write"
+msgstr "Write file"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.generic"
-msgstr "Tool"
+msgstr "Call tool"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.memory"
-msgstr "Memory"
+msgstr "Manage memories"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.network"
-msgstr "Connect"
+msgstr "Manage connection"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.note"
-msgstr "Note"
+msgstr "Manage notes"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.research"
-msgstr "Research"
+msgstr "Conduct research"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.schedule"
-msgstr "Schedule"
+msgstr "Manage schedule"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.search"
@@ -7050,27 +7470,27 @@ msgstr "Search"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.session"
-msgstr "Session"
+msgstr "Manage sessions"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.session-control"
-msgstr "Control"
+msgstr "Manage session"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.shell"
-msgstr "Shell"
+msgstr "Execute command"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.skill"
-msgstr "Skill"
+msgstr "Use skill"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.task"
-msgstr "Task"
+msgstr "Execute task"
 
 #. ── Classifier category labels ──────────────────────────────────────
 msgid "classifier.label.web"
-msgstr "Web"
+msgstr "Access web"
 
 #. js-lingui-explicit-id
 msgid "confirm.agendaAction.cancel.confirm"
@@ -7578,15 +7998,15 @@ msgstr "Note"
 
 #. ── Message-part chrome ────────────────────────────────────────────
 msgid "message-part.part-render-error"
-msgstr "Part Render Error: {partType}"
+msgstr "Couldn’t display this content:"
 
 #. ── Message-part chrome ────────────────────────────────────────────
 msgid "message-part.search-early-stop"
-msgstr "Search early stop"
+msgstr "Search ended early"
 
 #. ── Message-part chrome ────────────────────────────────────────────
 msgid "message-part.search-reflection"
-msgstr "Search reflection"
+msgstr "Search process"
 
 #. ── Message-part chrome ────────────────────────────────────────────
 msgid "message-part.session-label"
@@ -8010,6 +8430,139 @@ msgstr "Failed to cancel Lattice"
 #. prompt-input.tsx — light-loop active description
 msgid "prompt.lightLoop.nextMessage"
 msgstr "Next message starts the loop"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.sessionUnavailable"
+msgstr "Light Loop session is no longer available."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.stopped"
+msgstr "Light Loop stopped"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.stopped.description"
+msgstr "The session and completion review were cancelled."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskControl.aria"
+msgstr "Light Loop task. Click to edit; hold for 2 seconds to stop and exit."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskControl.click"
+msgstr "Click to view or edit the task."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskControl.hold"
+msgstr "Hold for 2 seconds to stop and exit Light Loop."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.cancel"
+msgstr "Cancel"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.close"
+msgstr "Close"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.editable"
+msgstr "Changes apply from the next model step."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.inactive"
+msgstr "Light Loop is no longer active. Close this dialog to continue."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.label"
+msgstr "Task description"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.reviewPending"
+msgstr "Completion review is pending. Stop or finish the review before changing the task."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.save"
+msgstr "Save task"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.saving"
+msgstr "Saving..."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.title"
+msgstr "Light Loop task"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskDialog.working"
+msgstr "The session is running. Stop it or wait until it is idle before changing the task."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskUpdated"
+msgstr "Light Loop task updated"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskUpdated.description"
+msgstr "The next model step will use the revised task."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.lightLoop.taskUpdateFailed"
+msgstr "Failed to update Light Loop"
 
 #. Runtime Lingui descriptors for prompt-input component strings.
  *  Each is a plain object with `id` + English `message`.
@@ -8853,6 +9406,27 @@ msgstr "Light Loop starts from the next text prompt, not shell mode."
  *  Each is a plain object with `id` + English `message`.
  *  Translate at use time via `useLocale().i18n._(descriptor)` or
  *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.submit.worktreeUnavailable.close"
+msgstr "Close"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.submit.worktreeUnavailable.description"
+msgstr "This session's worktree no longer exists. Your prompt was restored. Restore the missing worktree or move to another session before trying again."
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
+msgid "prompt.submit.worktreeUnavailable.title"
+msgstr "Worktree unavailable"
+
+#. Runtime Lingui descriptors for prompt-input component strings.
+ *  Each is a plain object with `id` + English `message`.
+ *  Translate at use time via `useLocale().i18n._(descriptor)` or
+ *  `i18n._({ ...descriptor, values: {...} })` when ICU placeholders are present.
 msgid "prompt.toolbar.addFiles"
 msgstr "Add files"
 
@@ -9664,6 +10238,41 @@ msgstr "weeks"
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.category.agent"
+msgstr "Agent"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.category.file"
+msgstr "File"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.category.mcp"
+msgstr "MCP"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.category.model"
+msgstr "Model"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.category.session"
+msgstr "Session"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.category.terminal"
+msgstr "Terminal"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.category.view"
+msgstr "View"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "session.cmd.chooseModel"
 msgstr "Choose model"
 
@@ -9731,6 +10340,11 @@ msgstr "Cycle thinking effort"
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "session.cmd.cycleEffortDesc"
 msgstr "Switch to the next effort level"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.effort.default"
+msgstr "Default"
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
@@ -9831,6 +10445,16 @@ msgstr "Rewind to here"
 msgid "session.cmd.rewindToHereDesc"
 msgstr "Rewind session to the active message"
 
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.toast.compactFailed"
+msgstr "Compaction failed"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.cmd.toast.compactFailedDesc"
+msgstr "Unable to compact this session."
+
 #. commands.tsx — toasts
 msgid "session.cmd.toast.effortChanged"
 msgstr "Thinking effort changed"
@@ -9899,158 +10523,6 @@ msgstr "Undo"
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "session.cmd.undoDesc"
 msgstr "Undo the last message turn"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.clickToView"
-msgstr "Click to view context"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.closeAriaLabel"
-msgstr "Close Context"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.cost"
-msgstr "Cost"
-
-#. session-context-panel
-msgid "session.context.panelTitle"
-msgstr "Context"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.assistant"
-msgstr "Assistant"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.assistantMessages"
-msgstr "Assistant Messages"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.breakdown"
-msgstr "Context Breakdown"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.breakdown.hint"
-msgstr "Approximate breakdown of input tokens. \"Other\" includes tool definitions and overhead."
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.cacheTokens"
-msgstr "Cache Tokens (read/write)"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.contextLimit"
-msgstr "Context Limit"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.inputTokens"
-msgstr "Input Tokens"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.lastActivity"
-msgstr "Last Activity"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.messages"
-msgstr "Messages"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.model"
-msgstr "Model"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.other"
-msgstr "Other"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.outputTokens"
-msgstr "Output Tokens"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.provider"
-msgstr "Provider"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.rawMessages"
-msgstr "Raw messages"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.reasoningTokens"
-msgstr "Reasoning Tokens"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.session"
-msgstr "Session"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.sessionCreated"
-msgstr "Session Created"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.sysPrompt"
-msgstr "System Prompt"
-
-#. session-context-tab
-msgid "session.context.tab.system"
-msgstr "System"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.toolCalls"
-msgstr "Tool Calls"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.totalCost"
-msgstr "Total Cost"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.totalTokens"
-msgstr "Total Tokens"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.usage"
-msgstr "Usage"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.user"
-msgstr "User"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.tab.userMessages"
-msgstr "User Messages"
-
-#. session-context-usage
-msgid "session.context.tokens"
-msgstr "Tokens"
-
-#. Runtime Lingui descriptors for session component strings.
- *  Translate at use time via `useLocale().i18n._(descriptor)`.
-msgid "session.context.usage"
-msgstr "Usage"
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
@@ -10681,7 +11153,7 @@ msgstr "Collapse"
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "session.question.customPlaceholder"
-msgstr "Type your own answer..."
+msgstr "Tell Synergy what to do instead..."
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
@@ -10690,12 +11162,17 @@ msgstr "Edit"
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.question.moreActions"
+msgstr "More question actions"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "session.question.multiHint"
-msgstr " *(select all that apply)*"
+msgstr "Choose one or more options to continue"
 
 #. question-prompt
 msgid "session.question.needsInput"
-msgstr "Needs your input"
+msgstr "Choose how to proceed"
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
@@ -10715,12 +11192,12 @@ msgstr "Open"
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "session.question.otherAnswer"
-msgstr "Other answer"
+msgstr "None of these?"
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "session.question.otherDesc"
-msgstr "Type a different answer"
+msgstr "Tell Synergy how to proceed"
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
@@ -10736,6 +11213,11 @@ msgstr "Review"
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
 msgid "session.question.reviewTitle"
 msgstr "Review your answers"
+
+#. Runtime Lingui descriptors for session component strings.
+ *  Translate at use time via `useLocale().i18n._(descriptor)`.
+msgid "session.question.singleHint"
+msgstr "Choose one option to continue"
 
 #. Runtime Lingui descriptors for session component strings.
  *  Translate at use time via `useLocale().i18n._(descriptor)`.
@@ -10956,6 +11438,14 @@ msgstr "Session"
 #. js-lingui-explicit-id
 msgid "session.state.default.unread"
 msgstr "Session; response ready"
+
+#. js-lingui-explicit-id
+msgid "session.state.github"
+msgstr "GitHub session"
+
+#. js-lingui-explicit-id
+msgid "session.state.github.unread"
+msgstr "GitHub session; response ready"
 
 #. js-lingui-explicit-id
 msgid "session.state.home"
@@ -12142,6 +12632,30 @@ msgstr "Sandbox"
 #. js-lingui-explicit-id
 msgid "settings.catalog.sandbox.searchTerms"
 msgstr "sandbox | isolation | fallback"
+
+#. js-lingui-explicit-id
+msgid "settings.catalog.synergyLink.description"
+msgstr "Persisted remote Synergy targets, authorization, and observed host details."
+
+#. js-lingui-explicit-id
+msgid "settings.catalog.synergyLink.label"
+msgstr "Synergy Link"
+
+#. js-lingui-explicit-id
+msgid "settings.catalog.synergyLink.row.linkID"
+msgstr "Link ID"
+
+#. js-lingui-explicit-id
+msgid "settings.catalog.synergyLink.row.targetAgentID"
+msgstr "Target agent ID"
+
+#. js-lingui-explicit-id
+msgid "settings.catalog.synergyLink.row.targets"
+msgstr "Targets"
+
+#. js-lingui-explicit-id
+msgid "settings.catalog.synergyLink.searchTerms"
+msgstr "synergy link | remote host | target | agent | link id | key"
 
 #. js-lingui-explicit-id
 msgid "settings.catalog.timeouts.description"
@@ -14661,11 +15175,15 @@ msgstr "Co-author Reminder"
 
 #. js-lingui-explicit-id
 msgid "settings.runtime.agents.concurrency.desc"
-msgstr "Maximum Cortex subagent tasks running at once. Memory pressure recommendations never override this value."
+msgstr "Maximum Cortex subagent tasks running at once. The runtime temporarily lowers the active limit under memory pressure."
 
 #. js-lingui-explicit-id
-msgid "settings.runtime.agents.concurrency.recommended"
-msgstr "Recommended: {value}"
+msgid "settings.runtime.agents.concurrency.memorySafety"
+msgstr "Memory safety limit: {value}"
+
+#. js-lingui-explicit-id
+msgid "settings.runtime.agents.concurrency.memorySafetyManaged"
+msgstr "Managed by environment · Memory safety limit: {value}"
 
 #. js-lingui-explicit-id
 msgid "settings.runtime.agents.concurrency.title"
@@ -15016,6 +15534,166 @@ msgid "settings.stepScale.customValue"
 msgstr "Custom {value}"
 
 #. js-lingui-explicit-id
+msgid "settings.synergyLink.add.action"
+msgstr "Add target"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.add.description"
+msgstr "Copy the target agent ID and Link ID from B. B still approves the first connection."
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.add.title"
+msgstr "Add target"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.authorization.approved"
+msgstr "Approved"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.authorization.revoked"
+msgstr "Revoked"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.authorization.unverified"
+msgstr "Unverified"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.availability.connected"
+msgstr "Connected"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.availability.idle"
+msgstr "Ready"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.availability.offline"
+msgstr "Holos offline"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.empty.description"
+msgstr "Add a target so agents can discover and connect to it by a stable target ID."
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.empty.title"
+msgstr "No Link targets yet"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.enabled"
+msgstr "Enabled"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.allowedAgents"
+msgstr "Allowed local agents"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.allowedAgents.description"
+msgstr "Comma-separated Synergy agent names. Leave empty to allow every local agent to discover this target."
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.allowedAgents.placeholder"
+msgstr "synergy, build"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.linkID"
+msgstr "Link ID"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.linkID.placeholder"
+msgstr "link_…"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.name"
+msgstr "Name"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.name.placeholder"
+msgstr "Build Mac"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.stableTargetID"
+msgstr "Stable target ID"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.targetAgentID"
+msgstr "Target agent ID"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.field.targetAgentID.placeholder"
+msgstr "agent_…"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.host.notObserved"
+msgstr "Not observed yet"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.host.title"
+msgstr "Observed host"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.load.error"
+msgstr "Link targets could not be loaded."
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.load.retry"
+msgstr "Retry"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.page.description"
+msgstr "Persist the Synergy hosts this installation can control and inspect their last observed identity."
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.page.title"
+msgstr "Synergy Link"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.refresh"
+msgstr "Refresh"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.remove.description"
+msgstr "Agents will no longer discover this target. This does not change B's trust list."
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.remove.title"
+msgstr "Remove Link target?"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.targets.description"
+msgstr "A target stores routing identifiers, authorization state, and observed host capabilities. It never stores B's Holos credentials."
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.targets.title"
+msgstr "Targets"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.test"
+msgstr "Test connection"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.toast.created"
+msgstr "Link target added"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.toast.failed"
+msgstr "Synergy Link action failed"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.toast.saved"
+msgstr "Link target saved"
+
+#. js-lingui-explicit-id
+msgid "settings.synergyLink.toast.tested"
+msgstr "Connection test completed"
+
+#. js-lingui-explicit-id
 msgid "settings.usage.attention.description"
 msgstr "These accounts were rejected and remain here until their credentials are recovered."
 
@@ -15295,6 +15973,14 @@ msgstr "Plan"
 msgid "special-user.label.workflow"
 msgstr "Workflow"
 
+#. ── Special user message labels ─────────────────────────────────────
+msgid "special-user.status.approved"
+msgstr "Approved"
+
+#. ── Special user message labels ─────────────────────────────────────
+msgid "special-user.status.changes-requested"
+msgstr "Changes requested"
+
 #. Question subtitle
 msgid "tool.label.asked-count"
 msgstr "Asked {count, plural, one {# question} other {# questions}}"
@@ -15433,11 +16119,11 @@ msgstr "Abort Session"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.agenda"
-msgstr "Agenda"
+msgstr "View schedule"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.agenda-logs"
-msgstr "Agenda Logs"
+msgstr "View schedule history"
 
 #. Dynamic tool-state labels used by standard.tsx renders
 msgid "tool.title.analysis-timed-out"
@@ -15457,7 +16143,7 @@ msgstr "Approve Light Loop"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.approve-permission"
-msgstr "Approve Permission"
+msgstr "Allow operation"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.archive-note"
@@ -15465,27 +16151,27 @@ msgstr "Archive Note"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.arxiv-download"
-msgstr "arXiv Download"
+msgstr "Download arXiv paper"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.arxiv-search"
-msgstr "arXiv Search"
+msgstr "Search arXiv"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.ast-search"
-msgstr "AST Search"
+msgstr "Search AST"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.attach"
-msgstr "Attach"
+msgstr "Add attachment"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.availability"
-msgstr "Availability"
+msgstr "Check availability"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.batch"
-msgstr "Batch"
+msgstr "Run batch"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.batch-stop"
@@ -15493,11 +16179,11 @@ msgstr "Batch Stop"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.blueprint-search"
-msgstr "Blueprint Search"
+msgstr "Search Blueprints"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.blueprints"
-msgstr "Blueprints"
+msgstr "View Blueprints"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.cancel-agenda"
@@ -15505,7 +16191,7 @@ msgstr "Cancel Agenda"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.claim"
-msgstr "Claim"
+msgstr "Manage research claims"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.clarus-submit-task-result"
@@ -15525,7 +16211,11 @@ msgstr "Closing"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.connect-list"
-msgstr "List"
+msgstr "View connections"
+
+#. ── Tool trigger titles ────────────────────────────────────────────
+msgid "tool.title.connect-list-targets"
+msgstr "View Link targets"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.connect-opening"
@@ -15533,7 +16223,7 @@ msgstr "Opening"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.connect-status"
-msgstr "Status"
+msgstr "View connection status"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.connected"
@@ -15541,7 +16231,7 @@ msgstr "Connected"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.control-session"
-msgstr "Control Session"
+msgstr "Manage session"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.create-file"
@@ -15553,11 +16243,11 @@ msgstr "Create Notebook"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.dag"
-msgstr "DAG"
+msgstr "Update DAG"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.dag-patch"
-msgstr "DAG"
+msgstr "Update DAG"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.delete-model"
@@ -15569,15 +16259,15 @@ msgstr "Delete Note"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.deny-permission"
-msgstr "Deny Permission"
+msgstr "Deny operation"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.deploy-inference"
-msgstr "Deploy Inference"
+msgstr "Deploy inference service"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.diagram"
-msgstr "Diagram"
+msgstr "Generate diagram"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.disconnected"
@@ -15593,7 +16283,7 @@ msgstr "Download Logs"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.edit"
-msgstr "Edit"
+msgstr "Edit file"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.edit-blueprint"
@@ -15609,27 +16299,27 @@ msgstr "Edit Note"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.email-inbox"
-msgstr "Email Inbox"
+msgstr "View inbox"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.enter-worktree"
-msgstr "Enter Worktree"
+msgstr "Enter isolated workspace"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.exhibit"
-msgstr "Exhibit"
+msgstr "Manage research exhibits"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.expand-tools"
-msgstr "Expand Tools"
+msgstr "Load tools"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.experiment"
-msgstr "Experiment"
+msgstr "Manage experiments"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.file-search"
-msgstr "File Search"
+msgstr "Search files"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.generate-image"
@@ -15637,67 +16327,67 @@ msgstr "Generate Image"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.glob"
-msgstr "Glob"
+msgstr "Match files with Glob"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.gpu-usage"
-msgstr "GPU Usage"
+msgstr "View GPU usage"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.grep"
-msgstr "Grep"
+msgstr "Search with Grep"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.harbor-login"
-msgstr "Harbor Login"
+msgstr "Log in to Harbor"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.hpc-usage"
-msgstr "HPC Usage"
+msgstr "View HPC usage"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.idea"
-msgstr "Idea"
+msgstr "Manage research ideas"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.image-detail"
-msgstr "Image Detail"
+msgstr "View image details"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.inference-detail"
-msgstr "Inference Detail"
+msgstr "View inference service"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.job-detail"
-msgstr "Job Detail"
+msgstr "View job details"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.job-logs"
-msgstr "Job Logs"
+msgstr "View job logs"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.job-metrics"
-msgstr "Job Metrics"
+msgstr "View job metrics"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.jobs"
-msgstr "Jobs"
+msgstr "View jobs"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.leave-worktree"
-msgstr "Leave Worktree"
+msgstr "Leave isolated workspace"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.list"
-msgstr "List"
+msgstr "List directory"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.look-at"
-msgstr "Look at"
+msgstr "Analyze file"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.lsp"
-msgstr "LSP"
+msgstr "Query code intelligence"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.mark-read"
@@ -15705,15 +16395,15 @@ msgstr "Mark Read"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.memory-edit"
-msgstr "Memory Edit"
+msgstr "Edit memory"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.memory-get"
-msgstr "Memory Get"
+msgstr "Read memory"
 
 #. Knowledge / memory / notes
 msgid "tool.title.memory-search"
-msgstr "Memory Search"
+msgstr "Search memories"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.memory-similar-found"
@@ -15725,19 +16415,19 @@ msgstr "Stored"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.memory-write"
-msgstr "Memory Write"
+msgstr "Write memory"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.model-detail"
-msgstr "Model Detail"
+msgstr "View model details"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.models"
-msgstr "Models"
+msgstr "View models"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.multi-edit"
-msgstr "Multi Edit"
+msgstr "Edit file in multiple places"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.note-appended"
@@ -15753,23 +16443,23 @@ msgstr "Replaced"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.note-search"
-msgstr "Note Search"
+msgstr "Search notes"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.notebook-detail"
-msgstr "Notebook Detail"
+msgstr "View notebook details"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.notebooks"
-msgstr "Notebooks"
+msgstr "View notebooks"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.notes"
-msgstr "Notes"
+msgstr "View notes"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.paper"
-msgstr "Paper"
+msgstr "Manage research paper"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.parse-code"
@@ -15777,7 +16467,7 @@ msgstr "Parse Code"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.patch"
-msgstr "Patch"
+msgstr "Apply patch"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.patch-applied"
@@ -15789,19 +16479,19 @@ msgstr "Generating patch…"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.plan"
-msgstr "Plan"
+msgstr "Manage research plan"
 
 #. Inspire — base keys use the most common variant; getToolInfo selects its own
 msgid "tool.title.platform-status"
-msgstr "Platform Status"
+msgstr "View platform status"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.process"
-msgstr "Process"
+msgstr "Manage process"
 
 #. Profile
 msgid "tool.title.profile"
-msgstr "Profile"
+msgstr "View profile"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.push-image"
@@ -15821,15 +16511,15 @@ msgstr "Question Timed Out"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.questions"
-msgstr "Questions"
+msgstr "Ask questions"
 
 #. Legacy qzcli — TODO remove
 msgid "tool.title.qz-login"
-msgstr "QZ Login"
+msgstr "Log in to QZ"
 
 #. File ops
 msgid "tool.title.read"
-msgstr "Read"
+msgstr "Read file"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.read-blueprint"
@@ -15877,7 +16567,7 @@ msgstr "Reject Light Loop"
 
 #. Render / diagram
 msgid "tool.title.render"
-msgstr "Render"
+msgstr "Render content"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.request-blueprint-review"
@@ -15889,11 +16579,11 @@ msgstr "Request Review"
 
 #. Research
 msgid "tool.title.research-init"
-msgstr "Research Init"
+msgstr "Start research"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.research-state"
-msgstr "Research State"
+msgstr "Manage research state"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.resolve-library"
@@ -15905,7 +16595,7 @@ msgstr "Revise File"
 
 #. Platform
 msgid "tool.title.runtime-reload"
-msgstr "Runtime Reload"
+msgstr "Reload runtime"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.save-file"
@@ -15921,7 +16611,7 @@ msgstr "Schedule Agenda"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.scopes"
-msgstr "Scopes"
+msgstr "View Scopes"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.search-email"
@@ -15949,11 +16639,11 @@ msgstr "Send Message"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.session-status"
-msgstr "Session Status"
+msgstr "View session status"
 
 #. Sessions
 msgid "tool.title.sessions"
-msgstr "Sessions"
+msgstr "View sessions"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.set-cookie"
@@ -15965,19 +16655,19 @@ msgstr "Set Default"
 
 #. Shell
 msgid "tool.title.shell"
-msgstr "Shell"
+msgstr "Execute command"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.sii-defaults"
-msgstr "SII Defaults"
+msgstr "View SII defaults"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.sii-login"
-msgstr "SII Login"
+msgstr "Log in to SII"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.skill"
-msgstr "Skill"
+msgstr "Use skill"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.start-notebook"
@@ -15985,11 +16675,11 @@ msgstr "Start Notebook"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.status-catalog"
-msgstr "Status Catalog"
+msgstr "View status catalog"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.stop-inference"
-msgstr "Stop Inference"
+msgstr "Stop inference service"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.stop-job"
@@ -16001,7 +16691,7 @@ msgstr "Stop Notebook"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.submission"
-msgstr "Submission"
+msgstr "Manage research submission"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.submit-gpu-job"
@@ -16017,27 +16707,27 @@ msgstr "Submit Job"
 
 #. DAG / task orchestration
 msgid "tool.title.task"
-msgstr "Task"
+msgstr "Call subagent"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.task-cancel"
-msgstr "Task Cancel"
+msgstr "Cancel task"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.task-list"
-msgstr "Task List"
+msgstr "View tasks"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.task-output"
-msgstr "Task Output"
+msgstr "View task result"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.timeline"
-msgstr "Timeline"
+msgstr "Manage research timeline"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.to-dos"
-msgstr "To-dos"
+msgstr "Update to-dos"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.track-job"
@@ -16045,11 +16735,11 @@ msgstr "Track Job"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.tracked-jobs"
-msgstr "Tracked Jobs"
+msgstr "View tracked jobs"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.trigger-agenda"
-msgstr "Trigger Agenda"
+msgstr "Run schedule now"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.unarchive-note"
@@ -16073,31 +16763,31 @@ msgstr "View Image"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.watch"
-msgstr "Watch"
+msgstr "Monitor schedule"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.web-search"
-msgstr "Web Search"
+msgstr "Search web"
 
 #. Search / web
 msgid "tool.title.webfetch"
-msgstr "Webfetch"
+msgstr "Read web page"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.wiki"
-msgstr "Wiki"
+msgstr "Manage research knowledge"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.workspaces"
-msgstr "Workspaces"
+msgstr "View workspaces"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.worktrees"
-msgstr "Worktrees"
+msgstr "View isolated workspaces"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.write"
-msgstr "Write"
+msgstr "Write file"
 
 #. ── Tool trigger titles ────────────────────────────────────────────
 msgid "tool.title.write-blueprint"
@@ -16129,7 +16819,7 @@ msgstr "Conflict markers detected"
 
 #. js-lingui-explicit-id
 msgid "ui.anchoredTool.conflictResolutionHint"
-msgstr "{count} file or region{pluralSuffix} may need resolution before anchored edits."
+msgstr "{count} file or region{pluralSuffix} may need resolution before precise edits."
 
 #. js-lingui-explicit-id
 msgid "ui.anchoredTool.createFile"

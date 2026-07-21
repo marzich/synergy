@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test"
 import z from "zod"
 import { Agent } from "../../src/agent/agent"
 import { createBuiltinMaxSubagents } from "../../src/agent/builtin-max-subagents"
+import { createBuiltinLegacySubagents } from "../../src/agent/builtin-legacy-subagents"
 import { BlueprintLoopStore } from "../../src/blueprint"
+import { MCP } from "../../src/mcp"
 import { PermissionNext } from "../../src/permission/next"
 import { ScopeContext } from "../../src/scope/context"
 import { Session } from "../../src/session"
@@ -105,6 +107,37 @@ function toolContext(sessionID: string): Tool.Context {
     metadata() {},
     async ask() {},
   }
+}
+
+function runtimeProcessor() {
+  const callbacks = new Map<string, Promise<unknown>>()
+  return {
+    message: { id: "message_test" },
+    partFromToolCall: () => undefined,
+    updateToolCallState: async () => {},
+    executeOnce<T>(callID: string, execute: () => Promise<T>) {
+      const existing = callbacks.get(callID)
+      if (existing) return existing as Promise<T>
+      const callback = Promise.resolve().then(execute)
+      callbacks.set(callID, callback)
+      return callback
+    },
+    beginExecution(callID: string) {
+      return {
+        callID,
+        promise: Promise.resolve(undefined),
+        resolve() {},
+        complete() {},
+        fail() {},
+        get outcome() {
+          return undefined
+        },
+        get status() {
+          return "pending" as const
+        },
+      }
+    },
+  } as any
 }
 
 describe("tool exposure", () => {
@@ -257,6 +290,30 @@ describe("tool exposure", () => {
         expect(ids.has("agenda_list")).toBe(false)
 
         expect((await Session.get(session.id)).toolState?.expandedGroups).toEqual(["browser"])
+      },
+    })
+  })
+
+  test("native subagents can expand only deferred tools they are allowed to use", async () => {
+    await using tmp = await tmpdir({ git: true })
+    await ScopeContext.provide({
+      scope: await tmp.scope(),
+      fn: async () => {
+        const agent = createBuiltinMaxSubagents(builtinCtx)["code-cartographer"]
+        const session = await Session.create({})
+        let ids = await definitionIDs(session, { agent })
+
+        expect(ids.has("search_tools")).toBe(true)
+        expect(ids.has("expand_tools")).toBe(true)
+        expect(ids.has("note_read")).toBe(false)
+
+        await Session.update(session.id, (draft) => {
+          draft.toolState = { expandedGroups: ["note", "browser"] }
+        })
+
+        ids = await definitionIDs(await Session.get(session.id), { agent })
+        expect(ids.has("note_read")).toBe(true)
+        expect(ids.has("browser_navigation")).toBe(false)
       },
     })
   })
@@ -520,6 +577,89 @@ describe("tool exposure", () => {
     })
   })
 
+  test("tool discovery applies the current invocation tool allowlist", async () => {
+    await using tmp = await tmpdir({ git: true })
+    await ScopeContext.provide({
+      scope: await tmp.scope(),
+      fn: async () => {
+        const agent = createBuiltinMaxSubagents(builtinCtx)["code-cartographer"]
+        const session = await Session.create({})
+        const userTools = { "*": false, search_tools: true, expand_tools: true, note_read: true }
+        const resolved = await ToolResolver.resolveWithAvailability({
+          agent,
+          model,
+          sessionID: session.id,
+          session,
+          processor: runtimeProcessor(),
+          userTools,
+          includeMCP: false,
+        })
+
+        const searchResult = await (resolved.tools.search_tools as any).execute(
+          { query: "note", limit: 8 },
+          { toolCallId: "call_search" },
+        )
+        const noteResult = (searchResult.metadata.results as Array<any>).find((result) => result.id === "note")
+        expect(noteResult?.matchedToolPreview).toEqual(["note_read"])
+
+        const expandResult = await (resolved.tools.expand_tools as any).execute(
+          { groups: ["note"] },
+          { toolCallId: "call_expand" },
+        )
+        expect(expandResult.metadata.availableRequestedTools).toEqual(["note_read"])
+
+        const ids = await definitionIDs(await Session.get(session.id), { agent, userTools })
+        expect(ids.has("note_read")).toBe(true)
+        expect(ids.has("note_write")).toBe(false)
+        expect(ids.has("note_edit")).toBe(false)
+      },
+    })
+  })
+
+  test("restricted subagents cannot enumerate permission-hidden MCP groups", async () => {
+    await using tmp = await tmpdir({ git: true })
+    const originalToolEntries = MCP.toolEntries
+    const serverName = "private-server"
+    const groupID = ToolExposure.mcpGroupID(serverName)
+    const toolIDs = Array.from({ length: ToolExposure.MCP_DEFER_THRESHOLD }, (_, index) =>
+      ToolExposure.mcpToolID(serverName, `secret_${index}`),
+    )
+    ;(MCP as any).toolEntries = async () =>
+      toolIDs.map((id, index) => ({
+        id,
+        serverName,
+        toolName: `secret_${index}`,
+        tool: { description: "Permission-hidden MCP tool" },
+      }))
+
+    try {
+      await ScopeContext.provide({
+        scope: await tmp.scope(),
+        fn: async () => {
+          const agent = createBuiltinMaxSubagents(builtinCtx)["code-cartographer"]
+          const session = await Session.create({})
+          const search = await SearchToolsTool.init({ agent })
+          const searchResult = await search.execute({ query: "no-match", limit: 8 }, toolContext(session.id))
+          expect(searchResult.metadata.groups).not.toContain(groupID)
+          expect(searchResult.output).not.toContain(serverName)
+
+          const expand = await ExpandToolsTool.init({ agent })
+          const unknownResult = await expand.execute({ groups: ["missing"] }, toolContext(session.id))
+          expect(unknownResult.output).not.toContain(groupID)
+
+          const hiddenResult = await expand.execute({ groups: [groupID] }, toolContext(session.id))
+          expect(hiddenResult.metadata.changed).toBe(false)
+          expect(hiddenResult.metadata.issues.unknownGroups).toEqual([groupID])
+          expect(hiddenResult.metadata.issues.permissionHidden).toEqual([])
+          expect(hiddenResult.output).not.toContain(toolIDs[0])
+          expect((await Session.get(session.id)).toolState).toBeUndefined()
+        },
+      })
+    } finally {
+      ;(MCP as any).toolEntries = originalToolEntries
+    }
+  })
+
   test("Plan keeps bash visible and forces the note group without exposing other deferred groups", async () => {
     await using tmp = await tmpdir({ git: true })
     await ScopeContext.provide({
@@ -578,7 +718,7 @@ describe("tool exposure", () => {
       fn: async () => {
         const parent = await Session.create({})
         await Session.update(parent.id, (draft) => {
-          draft.workflow = { kind: "lightloop", taskDescription: "Finish the feature" }
+          draft.workflow = { kind: "lightloop", instructions: "Finish the feature" }
         })
         const primarySession = await Session.get(parent.id)
 
@@ -671,16 +811,29 @@ describe("tool exposure", () => {
           draft.blueprint = { loopID: loop.id, loopRole: "execution" }
         })
 
-        let availability = await ToolResolver.availability({
-          agent: allowAllAgent,
-          model,
-          sessionID: execution.id,
-          session: await Session.get(execution.id),
-          includeMCP: false,
-        })
-        expect(availability.visible.some((def) => def.id === "blueprint_loop_stop")).toBe(true)
-        expect(availability.visible.some((def) => def.id === "blueprint_loop_approve")).toBe(false)
-        expect(availability.visible.some((def) => def.id === "blueprint_loop_reject")).toBe(false)
+        const executionAgents = {
+          developer: createBuiltinLegacySubagents(builtinCtx).developer,
+          "implementation-engineer": createBuiltinMaxSubagents(builtinCtx)["implementation-engineer"],
+          "refactoring-engineer": createBuiltinMaxSubagents(builtinCtx)["refactoring-engineer"],
+        }
+        for (const [name, agent] of Object.entries(executionAgents)) {
+          if (!agent) throw new Error(`missing ${name}`)
+          const executionAvailability = await ToolResolver.availability({
+            agent,
+            model,
+            sessionID: execution.id,
+            session: await Session.get(execution.id),
+            includeMCP: false,
+          })
+          expect(
+            executionAvailability.visible.some((def) => def.id === "blueprint_loop_stop"),
+            `${name}:blueprint_loop_stop`,
+          ).toBe(true)
+          expect(executionAvailability.visible.some((def) => def.id === "blueprint_loop_approve")).toBe(false)
+          expect(executionAvailability.visible.some((def) => def.id === "blueprint_loop_reject")).toBe(false)
+        }
+
+        let availability: Awaited<ReturnType<typeof ToolResolver.availability>>
 
         const reviewer = await Session.create({
           parentID: execution.id,
@@ -755,7 +908,7 @@ describe("tool exposure", () => {
         await Session.update(parent.id, (draft) => {
           draft.workflow = {
             kind: "lightloop",
-            taskDescription: "Finish the feature",
+            instructions: "Finish the feature",
             stopRequest: {
               summary: "done",
               requestedAt: Date.now(),

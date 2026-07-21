@@ -7,6 +7,7 @@ import { ModelsDev } from "../provider/models"
 import { LSPServer } from "../lsp/server"
 import { ModelRole } from "../provider/model-role"
 import { normalizePublicHttpsOrigin } from "../util/public-https-origin"
+import { GitHubIntegrationConfig as GitHubIntegrationConfigSchema } from "../github/types"
 
 export const McpRetry = z
   .object({
@@ -192,6 +193,41 @@ export const ChannelFeishu = z
   .meta({ ref: "ChannelFeishuConfig" })
 export type ChannelFeishu = z.infer<typeof ChannelFeishu>
 
+export const ChannelClarusAccount = z
+  .object({
+    enabled: z.boolean().optional().default(true),
+    apiUrl: z
+      .string()
+      .optional()
+      .describe("Clarus REST API origin override; defaults to the configured Holos API origin"),
+    agent: z.string().optional().describe("Primary Synergy agent for project and assignment Sessions"),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.apiUrl) return
+    try {
+      const url = validateHolosEndpoint(value.apiUrl, "api")
+      if (url.pathname !== "/" || url.search || url.hash) throw new Error("Clarus apiUrl must be an origin")
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["apiUrl"],
+        message: error instanceof Error ? error.message : "Invalid Clarus apiUrl",
+      })
+    }
+  })
+  .meta({ ref: "ChannelClarusAccountConfig" })
+export type ChannelClarusAccount = z.infer<typeof ChannelClarusAccount>
+
+export const ChannelClarus = z
+  .object({
+    type: z.literal("clarus"),
+    accounts: z.record(z.string(), ChannelClarusAccount),
+  })
+  .strict()
+  .meta({ ref: "ChannelClarusConfig" })
+export type ChannelClarus = z.infer<typeof ChannelClarus>
+
 export const Holos = z
   .object({
     enabled: z.boolean().optional().default(true).describe("Enable the Holos runtime connection"),
@@ -233,41 +269,6 @@ export const Holos = z
   })
   .meta({ ref: "HolosConfig" })
 export type Holos = z.infer<typeof Holos>
-
-export const ClarusConfig = z
-  .object({
-    enabled: z.boolean().optional().default(true).describe("Enable Clarus project binding and task session routing"),
-    workspaceRoot: z
-      .string()
-      .optional()
-      .describe(
-        "Absolute path where Clarus project workspaces are stored (defaults to ~/.synergy/data/clarus-workspaces)",
-      ),
-    apiUrl: z
-      .string()
-      .optional()
-      .describe(
-        "Clarus REST API origin override (defaults to holos.apiUrl). Must be an HTTPS origin or loopback HTTP.",
-      ),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    if (!value.apiUrl) return
-    try {
-      const url = validateHolosEndpoint(value.apiUrl, "api")
-      if (url.pathname !== "/" || url.search || url.hash) {
-        throw new Error("Clarus apiUrl must be an origin")
-      }
-    } catch (error) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["apiUrl"],
-        message: error instanceof Error ? error.message : "Invalid Clarus apiUrl",
-      })
-    }
-  })
-  .meta({ ref: "ClarusConfig" })
-export type ClarusConfig = z.infer<typeof ClarusConfig>
 
 export const SandboxConfig = z
   .object({
@@ -447,7 +448,7 @@ export const ObservabilityConfig = z
   .meta({ ref: "ObservabilityConfig" })
 export type ObservabilityConfig = z.infer<typeof ObservabilityConfig>
 
-export const Channel = z.discriminatedUnion("type", [ChannelFeishu])
+export const Channel = z.discriminatedUnion("type", [ChannelFeishu, ChannelClarus])
 export type Channel = z.infer<typeof Channel>
 
 export const EmailSmtp = z
@@ -1391,6 +1392,9 @@ export const QuickSwitcher = z
   .meta({ ref: "QuickSwitcherConfig" })
 export type QuickSwitcher = z.infer<typeof QuickSwitcher>
 
+export const GitHubIntegrationConfig = GitHubIntegrationConfigSchema
+export type GitHubIntegrationConfig = z.infer<typeof GitHubIntegrationConfig>
+
 export const Info = z
   .object({
     $schema: z.string().optional().describe("JSON schema reference for configuration validation"),
@@ -1473,6 +1477,7 @@ export const Info = z
       .strict()
       .optional()
       .describe("Cortex task scheduling configuration"),
+    github: GitHubIntegrationConfig.optional().describe("Outbound GitHub App polling and automation configuration"),
     watcher: z
       .object({
         ignore: z.array(z.string()).optional(),
@@ -1600,7 +1605,6 @@ export const Info = z
     observability: ObservabilityConfig.optional().describe("Local logs, indexed telemetry, and diagnostics settings"),
     controlProfile: ControlProfileId.optional().describe("Default control profile applied to all agents"),
     holos: Holos.optional().describe("Holos platform configuration"),
-    clarus: ClarusConfig.optional().describe("Clarus project binding and task session routing configuration"),
     email: Email.optional().describe("Outgoing email configuration"),
     formatter: z
       .union([

@@ -37,9 +37,10 @@ import type {
   AgendaUpdateResponses,
   AgendaWebhookErrors,
   AgendaWebhookResponses,
-  ApiPluginsApproveInstallResponses,
-  ApiPluginsGetApprovalErrors,
-  ApiPluginsGetApprovalResponses,
+  ApiPluginsApproveErrors,
+  ApiPluginsApproveResponses,
+  ApiPluginsGetApprovalReviewErrors,
+  ApiPluginsGetApprovalReviewResponses,
   ApiPluginsGetErrors,
   ApiPluginsGetResponses,
   ApiPluginsInstallFromRegistryErrors,
@@ -107,9 +108,6 @@ import type {
   ChannelStatusResponses,
   ChannelStopOneResponses,
   ChannelStopResponses,
-  ClarusComposerSubmitInput,
-  ClarusProjectBindingCreateInput,
-  ClarusProjectBindingUpdateInput,
   CommandListResponses,
   Config as Config2,
   ConfigDomainGetErrors,
@@ -155,37 +153,9 @@ import type {
   ExperienceListSort,
   ExperimentalResourceListResponses,
   FormatterStatusResponses,
+  GithubConfiguredResponses,
   GlobalAgendaListErrors,
   GlobalAgendaListResponses,
-  GlobalClarusComposerLookupProjectsErrors,
-  GlobalClarusComposerLookupProjectsResponses,
-  GlobalClarusComposerLookupUsersErrors,
-  GlobalClarusComposerLookupUsersResponses,
-  GlobalClarusComposerSubmitErrors,
-  GlobalClarusComposerSubmitResponses,
-  GlobalClarusNavigationResponses,
-  GlobalClarusProjectsActivityErrors,
-  GlobalClarusProjectsActivityResponses,
-  GlobalClarusProjectsContinueLocalErrors,
-  GlobalClarusProjectsContinueLocalResponses,
-  GlobalClarusProjectsCreateErrors,
-  GlobalClarusProjectsCreateResponses,
-  GlobalClarusProjectsDeactivateErrors,
-  GlobalClarusProjectsDeactivateResponses,
-  GlobalClarusProjectsGetErrors,
-  GlobalClarusProjectsGetResponses,
-  GlobalClarusProjectsListErrors,
-  GlobalClarusProjectsListResponses,
-  GlobalClarusProjectsTaskDetailErrors,
-  GlobalClarusProjectsTaskDetailResponses,
-  GlobalClarusProjectsUpdateErrors,
-  GlobalClarusProjectsUpdateResponses,
-  GlobalClarusReconnectResponses,
-  GlobalClarusStatusResponses,
-  GlobalClarusTasksGetErrors,
-  GlobalClarusTasksGetResponses,
-  GlobalClarusTasksListErrors,
-  GlobalClarusTasksListResponses,
   GlobalDisposeResponses,
   GlobalFilesystemBrowseResponses,
   GlobalGitInitErrors,
@@ -290,6 +260,7 @@ import type {
   LibrarySearchResponses,
   LibraryStatsErrors,
   LibraryStatsResponses,
+  LightloopUpdateInput,
   LspStatusResponses,
   McpAddErrors,
   McpAddResponses,
@@ -437,6 +408,8 @@ import type {
   RuntimeReloadTarget,
   SandboxReadinessResponses,
   SandboxStatusResponses,
+  ScopeBootstrapErrors,
+  ScopeBootstrapResponses,
   ScopeCurrentResponses,
   ScopeIndexResponses,
   ScopeListResponses,
@@ -509,6 +482,9 @@ import type {
   SessionUnrollbackResponses,
   SessionUpdateErrors,
   SessionUpdateResponses,
+  SessionVolatileBatchErrors,
+  SessionVolatileBatchInput,
+  SessionVolatileBatchResponses,
   SessionWorkspaceSelection,
   SkillImportErrors,
   SkillImportResponses,
@@ -518,14 +494,29 @@ import type {
   SkillReloadResponses,
   SkillRemoveErrors,
   SkillRemoveResponses,
+  SynergyLinkTargetCreateErrors,
+  SynergyLinkTargetCreateInput,
+  SynergyLinkTargetCreateResponses,
+  SynergyLinkTargetPatchInput,
+  SynergyLinkTargetProbeErrors,
+  SynergyLinkTargetProbeResponses,
+  SynergyLinkTargetRemoveErrors,
+  SynergyLinkTargetRemoveResponses,
+  SynergyLinkTargetsResponses,
+  SynergyLinkTargetUpdateErrors,
+  SynergyLinkTargetUpdateResponses,
   TextPartInput,
   ToolIdsErrors,
   ToolIdsResponses,
   ToolListErrors,
   ToolListResponses,
   VcsGetResponses,
+  WorkflowSessionCancelLightloopErrors,
+  WorkflowSessionCancelLightloopResponses,
   WorkflowSessionSetErrors,
   WorkflowSessionSetResponses,
+  WorkflowSessionUpdateLightloopErrors,
+  WorkflowSessionUpdateLightloopResponses,
   WorkflowSetInput,
   WorkspaceFilesChildrenErrors,
   WorkspaceFilesChildrenResponses,
@@ -1557,7 +1548,7 @@ export class Session extends HeyApiClient {
     parameters?: {
       directory?: string
       scopeID?: string
-      category?: "project" | "home" | "channel" | "background" | "clarus"
+      category?: "project" | "home" | "channel" | "background" | "github"
       parentOnly?: "true" | "false"
       includeArchived?: "true" | "false"
       limit?: number
@@ -2769,6 +2760,47 @@ export class Session extends HeyApiClient {
   }
 
   /**
+   * Batch session volatile state
+   *
+   * Retrieve inbox, todo, and DAG state for multiple sessions in the current scope.
+   */
+  public volatileBatch<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      scopeID?: string
+      sessionVolatileBatchInput?: SessionVolatileBatchInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "scopeID" },
+            { key: "sessionVolatileBatchInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      SessionVolatileBatchResponses,
+      SessionVolatileBatchErrors,
+      ThrowOnError
+    >({
+      url: "/session/batch/volatile",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
    * Import session data
    *
    * Import a Synergy session export JSON or gzipped JSON file into the current scope.
@@ -2881,6 +2913,85 @@ export class Session extends HeyApiClient {
     })
   }
 
+  /**
+   * Update Light Loop instructions
+   *
+   * Update the instructions for an active Light Loop. The next model step uses the new instructions.
+   */
+  public updateLightloop<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      scopeID?: string
+      lightloopUpdateInput?: LightloopUpdateInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "scopeID" },
+            { key: "lightloopUpdateInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<
+      WorkflowSessionUpdateLightloopResponses,
+      WorkflowSessionUpdateLightloopErrors,
+      ThrowOnError
+    >({
+      url: "/workflow/session/{id}/lightloop",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Cancel Light Loop
+   *
+   * Stop active session work and completion review, then clear the Light Loop workflow.
+   */
+  public cancelLightloop<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      directory?: string
+      scopeID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "scopeID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      WorkflowSessionCancelLightloopResponses,
+      WorkflowSessionCancelLightloopErrors,
+      ThrowOnError
+    >({
+      url: "/workflow/session/{id}/lightloop/cancel",
+      ...options,
+      ...params,
+    })
+  }
+
   files = new Files({ client: this.client })
 
   export = new Export({ client: this.client })
@@ -2896,6 +3007,7 @@ export class Nav extends HeyApiClient {
     parameters?: {
       parentOnly?: boolean
       includeArchived?: boolean
+      category?: "project" | "home" | "channel" | "background" | "github"
       search?: string
       limit?: number
       cursorLastActivityAt?: number
@@ -2910,6 +3022,7 @@ export class Nav extends HeyApiClient {
           args: [
             { in: "query", key: "parentOnly" },
             { in: "query", key: "includeArchived" },
+            { in: "query", key: "category" },
             { in: "query", key: "search" },
             { in: "query", key: "limit" },
             { in: "query", key: "cursorLastActivityAt" },
@@ -2943,476 +3056,6 @@ export class Nav extends HeyApiClient {
       ...params,
     })
   }
-}
-
-export class Projects extends HeyApiClient {
-  /**
-   * List Clarus project bindings
-   *
-   * List Clarus project bindings for the connected agent, bounded by cursor.
-   */
-  public list<ThrowOnError extends boolean = false>(
-    parameters?: {
-      cursor?: string
-      limit?: number
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "query", key: "cursor" },
-            { in: "query", key: "limit" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<
-      GlobalClarusProjectsListResponses,
-      GlobalClarusProjectsListErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/projects",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Create or activate a Clarus project binding
-   *
-   * Create or activate a Clarus project binding for the connected agent.
-   */
-  public create<ThrowOnError extends boolean = false>(
-    parameters?: {
-      clarusProjectBindingCreateInput?: ClarusProjectBindingCreateInput
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [{ args: [{ key: "clarusProjectBindingCreateInput", map: "body" }] }],
-    )
-    return (options?.client ?? this.client).post<
-      GlobalClarusProjectsCreateResponses,
-      GlobalClarusProjectsCreateErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/projects",
-      ...options,
-      ...params,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-        ...params.headers,
-      },
-    })
-  }
-
-  /**
-   * Get a Clarus project binding
-   *
-   * Get a single Clarus project binding by project ID.
-   */
-  public get<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectId: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "projectId" }] }])
-    return (options?.client ?? this.client).get<
-      GlobalClarusProjectsGetResponses,
-      GlobalClarusProjectsGetErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/projects/{projectId}",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Update a Clarus project binding
-   *
-   * Update metadata for a Clarus project binding.
-   */
-  public update<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectId: string
-      clarusProjectBindingUpdateInput?: ClarusProjectBindingUpdateInput
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "path", key: "projectId" },
-            { key: "clarusProjectBindingUpdateInput", map: "body" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).put<
-      GlobalClarusProjectsUpdateResponses,
-      GlobalClarusProjectsUpdateErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/projects/{projectId}",
-      ...options,
-      ...params,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-        ...params.headers,
-      },
-    })
-  }
-
-  /**
-   * Deactivate a Clarus project binding
-   *
-   * Set a Clarus project binding to inactive (archived). Idempotent.
-   */
-  public deactivate<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectId: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "projectId" }] }])
-    return (options?.client ?? this.client).post<
-      GlobalClarusProjectsDeactivateResponses,
-      GlobalClarusProjectsDeactivateErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/projects/{projectId}/deactivate",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * List project activity
-   *
-   * List paginated activity records for a Clarus project in chronological order. Forward-only cursor; insertions after the cursor appear on subsequent pages. Unknown/malformed cursors resume from the beginning. Default limit 20, max 100.
-   */
-  public activity<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectId: string
-      cursor?: string
-      limit?: number
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "path", key: "projectId" },
-            { in: "query", key: "cursor" },
-            { in: "query", key: "limit" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<
-      GlobalClarusProjectsActivityResponses,
-      GlobalClarusProjectsActivityErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/projects/{projectId}/activity",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Get safe bounded task detail
-   *
-   * Returns safe bounded task detail for header/composer use. Includes sessionID solely for HOME_SCOPE_KEY routing, bounded runID/taskId, display identity, phase, attempt, deadline, title, exact status/result/context enums, bounded assignment summary, local continuation state, and timestamps. Excludes workspacePath, scopeID, frozenAgent, raw task input/instructions/metadata/outbox/storage records, credentials, and unrestricted internal IDs.
-   */
-  public taskDetail<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectId: string
-      taskId: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "path", key: "projectId" },
-            { in: "path", key: "taskId" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<
-      GlobalClarusProjectsTaskDetailResponses,
-      GlobalClarusProjectsTaskDetailErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/projects/{projectId}/tasks/{taskId}",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Enable local continuation for a task
-   *
-   * Allowed only when status is 'submitted' and resultState is 'acknowledged'. Idempotently persists localContinuationEnabledAt and resultState = local_only. Already local-only tasks return the existing binding. Works for already-local-only tasks (idempotent) and acknowledged/submitted tasks.
-   */
-  public continueLocal<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectId: string
-      taskId: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "path", key: "projectId" },
-            { in: "path", key: "taskId" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).post<
-      GlobalClarusProjectsContinueLocalResponses,
-      GlobalClarusProjectsContinueLocalErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/projects/{projectId}/tasks/{taskId}/continue-local",
-      ...options,
-      ...params,
-    })
-  }
-}
-
-export class Tasks extends HeyApiClient {
-  /**
-   * List Clarus task bindings
-   *
-   * List task bindings for the connected agent, scoped to a specific project. A projectId query parameter is required.
-   */
-  public list<ThrowOnError extends boolean = false>(
-    parameters: {
-      projectId: string
-      cursor?: string
-      limit?: number
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "query", key: "projectId" },
-            { in: "query", key: "cursor" },
-            { in: "query", key: "limit" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<
-      GlobalClarusTasksListResponses,
-      GlobalClarusTasksListErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/tasks",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Get a Clarus task binding
-   *
-   * Get a single Clarus task binding by task ID and project ID.
-   */
-  public get<ThrowOnError extends boolean = false>(
-    parameters: {
-      taskId: string
-      projectId: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "path", key: "taskId" },
-            { in: "query", key: "projectId" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<
-      GlobalClarusTasksGetResponses,
-      GlobalClarusTasksGetErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/tasks/{taskId}",
-      ...options,
-      ...params,
-    })
-  }
-}
-
-export class Composer extends HeyApiClient {
-  /**
-   * Lookup composer users
-   *
-   * Look up available users for the composer. Returns at most 5 candidates matching the search term. Fields: userId (owner_id), userName, agentId. No profile/agent_key leakage.
-   */
-  public lookupUsers<ThrowOnError extends boolean = false>(
-    parameters?: {
-      search?: string
-      limit?: number
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "query", key: "search" },
-            { in: "query", key: "limit" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<
-      GlobalClarusComposerLookupUsersResponses,
-      GlobalClarusComposerLookupUsersErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/composer/users",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Lookup composer projects
-   *
-   * Look up active projects for the composer from the connected agent's project bindings. Returns at most 5 candidates matching the search term.
-   */
-  public lookupProjects<ThrowOnError extends boolean = false>(
-    parameters?: {
-      search?: string
-      limit?: number
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "query", key: "search" },
-            { in: "query", key: "limit" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<
-      GlobalClarusComposerLookupProjectsResponses,
-      GlobalClarusComposerLookupProjectsErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/composer/projects",
-      ...options,
-      ...params,
-    })
-  }
-
-  /**
-   * Submit a composer message
-   *
-   * Validate the selected user/agent pair against current project bindings, allocate a requestID, and call ClarusRuntime.sendProjectMessage() exactly once with a 30s max timeout. Returns reconciliation identifiers. Ambiguous outcomes surface as structured recoverable/non-retry errors per Scheme A.
-   */
-  public submit<ThrowOnError extends boolean = false>(
-    parameters?: {
-      clarusComposerSubmitInput?: ClarusComposerSubmitInput
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams([parameters], [{ args: [{ key: "clarusComposerSubmitInput", map: "body" }] }])
-    return (options?.client ?? this.client).post<
-      GlobalClarusComposerSubmitResponses,
-      GlobalClarusComposerSubmitErrors,
-      ThrowOnError
-    >({
-      url: "/global/clarus/composer/submit",
-      ...options,
-      ...params,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-        ...params.headers,
-      },
-    })
-  }
-}
-
-export class Clarus extends HeyApiClient {
-  /**
-   * Clarus connection status
-   *
-   * Get Clarus connection status and metadata for the current runtime.
-   */
-  public status<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
-    return (options?.client ?? this.client).get<GlobalClarusStatusResponses, unknown, ThrowOnError>({
-      url: "/global/clarus/status",
-      ...options,
-    })
-  }
-
-  /**
-   * Reconnect Clarus
-   *
-   * Attempt to force a Clarus reconnection cycle. Returns full status after the attempt.
-   */
-  public reconnect<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
-    return (options?.client ?? this.client).post<GlobalClarusReconnectResponses, unknown, ThrowOnError>({
-      url: "/global/clarus/reconnect",
-      ...options,
-    })
-  }
-
-  /**
-   * Clarus navigation snapshot
-   *
-   * Returns a bounded navigation snapshot from locally persisted bindings. Works even when Clarus is disabled, signed out, reconnecting, or sync-failed.
-   */
-  public navigation<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
-    return (options?.client ?? this.client).get<GlobalClarusNavigationResponses, unknown, ThrowOnError>({
-      url: "/global/clarus/navigation",
-      ...options,
-    })
-  }
-
-  projects = new Projects({ client: this.client })
-
-  tasks = new Tasks({ client: this.client })
-
-  composer = new Composer({ client: this.client })
 }
 
 export class Global extends HeyApiClient {
@@ -3455,8 +3098,6 @@ export class Global extends HeyApiClient {
   session = new Session({ client: this.client })
 
   nav = new Nav({ client: this.client })
-
-  clarus = new Clarus({ client: this.client })
 }
 
 export class Diagnostics extends HeyApiClient {
@@ -4825,6 +4466,141 @@ export class Holos extends HeyApiClient {
   thread = new Thread({ client: this.client })
 }
 
+export class SynergyLink extends HeyApiClient {
+  /**
+   * List Synergy Link targets
+   *
+   * List the persisted remote Synergy targets available on this installation.
+   */
+  public targets<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<SynergyLinkTargetsResponses, unknown, ThrowOnError>({
+      url: "/synergy-link/targets",
+      ...options,
+    })
+  }
+
+  /**
+   * Create a Synergy Link target
+   */
+  public targetCreate<ThrowOnError extends boolean = false>(
+    parameters?: {
+      synergyLinkTargetCreateInput?: SynergyLinkTargetCreateInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ key: "synergyLinkTargetCreateInput", map: "body" }] }])
+    return (options?.client ?? this.client).post<
+      SynergyLinkTargetCreateResponses,
+      SynergyLinkTargetCreateErrors,
+      ThrowOnError
+    >({
+      url: "/synergy-link/targets",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove a Synergy Link target
+   */
+  public targetRemove<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "id" }] }])
+    return (options?.client ?? this.client).delete<
+      SynergyLinkTargetRemoveResponses,
+      SynergyLinkTargetRemoveErrors,
+      ThrowOnError
+    >({
+      url: "/synergy-link/targets/{id}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update a Synergy Link target
+   */
+  public targetUpdate<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+      synergyLinkTargetPatchInput?: SynergyLinkTargetPatchInput
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "id" },
+            { key: "synergyLinkTargetPatchInput", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<
+      SynergyLinkTargetUpdateResponses,
+      SynergyLinkTargetUpdateErrors,
+      ThrowOnError
+    >({
+      url: "/synergy-link/targets/{id}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Test a Synergy Link target
+   *
+   * Open or heartbeat a remote session to verify authorization and observe host capabilities.
+   */
+  public targetProbe<ThrowOnError extends boolean = false>(
+    parameters: {
+      id: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "path", key: "id" }] }])
+    return (options?.client ?? this.client).post<
+      SynergyLinkTargetProbeResponses,
+      SynergyLinkTargetProbeErrors,
+      ThrowOnError
+    >({
+      url: "/synergy-link/targets/{id}/probe",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Github extends HeyApiClient {
+  /**
+   * Check whether the GitHub App is configured
+   *
+   * Reports whether both required GitHub App environment variables are present without exposing them.
+   */
+  public configured<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<GithubConfiguredResponses, unknown, ThrowOnError>({
+      url: "/github/configured",
+      ...options,
+    })
+  }
+}
+
 export class Runtime extends HeyApiClient {
   /**
    * Reload runtime state
@@ -5174,6 +4950,36 @@ export class Scope extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Get scope bootstrap snapshot
+   *
+   * Retrieve the initial state needed to render a scope in one request.
+   */
+  public bootstrap<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      scopeID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "scopeID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<ScopeBootstrapResponses, ScopeBootstrapErrors, ThrowOnError>({
+      url: "/scope/bootstrap",
+      ...options,
+      ...params,
     })
   }
 
@@ -5552,9 +5358,9 @@ export class Domain extends HeyApiClient {
         | "permissions"
         | "channels"
         | "holos"
-        | "clarus"
         | "email"
         | "runtime"
+        | "github"
       directory?: string
       scopeID?: string
     },
@@ -5598,9 +5404,9 @@ export class Domain extends HeyApiClient {
         | "permissions"
         | "channels"
         | "holos"
-        | "clarus"
         | "email"
         | "runtime"
+        | "github"
       directory?: string
       scopeID?: string
       configDomainUpdateInput?: ConfigDomainUpdateInput
@@ -5651,9 +5457,9 @@ export class Domain extends HeyApiClient {
         | "permissions"
         | "channels"
         | "holos"
-        | "clarus"
         | "email"
         | "runtime"
+        | "github"
       directory?: string
       scopeID?: string
     },
@@ -6659,7 +6465,7 @@ export class Cortex extends HeyApiClient {
   /**
    * Get Cortex concurrency status
    *
-   * Get the configured, effective, and memory-recommended Cortex task concurrency limits.
+   * Get the configured, effective, and memory-pressure Cortex task concurrency limits.
    */
   public concurrency<ThrowOnError extends boolean = false>(
     parameters?: {
@@ -9684,45 +9490,7 @@ export class Plugins extends HeyApiClient {
     })
   }
 
-  public approveInstall<ThrowOnError extends boolean = false>(
-    parameters?: {
-      directory?: string
-      scopeID?: string
-      pluginId?: string
-      manifest?: unknown
-      capabilities?: Array<string>
-      source?: "local" | "official" | "npm" | "git" | "url" | "builtin"
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "query", key: "directory" },
-            { in: "query", key: "scopeID" },
-            { in: "body", key: "pluginId" },
-            { in: "body", key: "manifest" },
-            { in: "body", key: "capabilities" },
-            { in: "body", key: "source" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).post<ApiPluginsApproveInstallResponses, unknown, ThrowOnError>({
-      url: "/api/plugins/approve-install",
-      ...options,
-      ...params,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-        ...params.headers,
-      },
-    })
-  }
-
-  public getApproval<ThrowOnError extends boolean = false>(
+  public getApprovalReview<ThrowOnError extends boolean = false>(
     parameters: {
       pluginId: string
       directory?: string
@@ -9743,13 +9511,57 @@ export class Plugins extends HeyApiClient {
       ],
     )
     return (options?.client ?? this.client).get<
-      ApiPluginsGetApprovalResponses,
-      ApiPluginsGetApprovalErrors,
+      ApiPluginsGetApprovalReviewResponses,
+      ApiPluginsGetApprovalReviewErrors,
       ThrowOnError
     >({
-      url: "/api/plugins/{pluginId}/approval",
+      url: "/api/plugins/{pluginId}/approval-review",
       ...options,
       ...params,
+    })
+  }
+
+  public approve<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      scopeID?: string
+      target?:
+        | {
+            kind: "configured"
+            pluginId: string
+          }
+        | {
+            kind: "registry"
+            pluginId: string
+            version: string
+            source: "official" | "local"
+          }
+      reviewToken?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "scopeID" },
+            { in: "body", key: "target" },
+            { in: "body", key: "reviewToken" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ApiPluginsApproveResponses, ApiPluginsApproveErrors, ThrowOnError>({
+      url: "/api/plugins/approve",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 
@@ -10882,6 +10694,10 @@ export class SynergyClient extends HeyApiClient {
   performance = new Performance({ client: this.client })
 
   holos = new Holos({ client: this.client })
+
+  synergyLink = new SynergyLink({ client: this.client })
+
+  github = new Github({ client: this.client })
 
   agenda = new Agenda({ client: this.client })
 

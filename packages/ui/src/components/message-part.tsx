@@ -53,6 +53,7 @@ import { isToolCardHidden } from "./tool-result-presentation"
 import { hasVisibleUserMessageContent, shouldCollapseUserMessage, visibleUserMessageText } from "./user-message-utils"
 import { CompactionCard } from "./compaction-card"
 import { getAnysearchToolInfo, isAnysearchToolName } from "./tool/anysearch-info"
+import { getTaskToolInfo } from "./tool/task-info"
 import type { MessageDescriptor } from "@lingui/core"
 import { MESSAGE_PART_DESC, TOOL_MISC_DESC, TOOL_TITLE_DESC } from "./tool-title-descriptors"
 import { useLingui } from "@lingui/solid"
@@ -560,11 +561,7 @@ export function getToolInfo(tool: string, input: any = {}, metadata: any = {}): 
         subtitle: input.url,
       }
     case "task":
-      return {
-        icon: "list-todo",
-        title: `${input.subagent_type || "task"} Agent`,
-        subtitle: input.description,
-      }
+      return getTaskToolInfo(input)
     case "bash":
       return {
         icon: "terminal",
@@ -639,12 +636,6 @@ export function getToolInfo(tool: string, input: any = {}, metadata: any = {}): 
       return {
         icon: "message-circle",
         title: TOOL_TITLE_DESC["question"],
-      }
-    case "clarus_submit_task_result":
-      return {
-        icon: "send",
-        title: TOOL_TITLE_DESC["clarus_submit_task_result"],
-        subtitle: input.success === false ? TOOL_MISC_DESC.failed : TOOL_MISC_DESC.completed,
       }
     case "websearch":
       return {
@@ -1236,6 +1227,11 @@ export function getToolInfo(tool: string, input: any = {}, metadata: any = {}): 
         icon: "mail",
         title: TOOL_TITLE_DESC["email_send"],
         subtitle: input.to ? `To: ${Array.isArray(input.to) ? input.to.join(", ") : input.to}` : input.subject,
+      }
+    case "clarus_submit_task_result":
+      return {
+        icon: "send",
+        title: TOOL_TITLE_DESC["clarus_submit_task_result"],
       }
     case "email_read": {
       const args: string[] = []

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, mock, test } from "bun:test"
 import { Identifier } from "../../src/id/id"
 import { ScopeContext } from "../../src/scope/context"
 import { Session } from "../../src/session"
@@ -142,6 +142,73 @@ describe("session message cursor pages", () => {
         await Session.remove(session.id)
       },
     })
+  })
+
+  test("flushes buffered streaming parts before returning a page snapshot", async () => {
+    await using tmp = await tmpdir({ git: true })
+    await ScopeContext.provide({
+      scope: await tmp.scope(),
+      fn: async () => {
+        const session = await Session.create({ title: "Buffered message page" })
+        const rootID = Identifier.ascending("message")
+        const assistantID = Identifier.ascending("message")
+        try {
+          await writeUser(session.id, rootID, 1_000)
+          await writeAssistant({ sessionID: session.id, id: assistantID, rootID, created: 2_000, cwd: tmp.path })
+          const part: MessageV2.TextPart = {
+            id: Identifier.ascending("part"),
+            sessionID: session.id,
+            messageID: assistantID,
+            type: "text",
+            text: "buffered text",
+          }
+          await Session.updatePartDelta(part, part.text)
+
+          const latest = await Session.messagePage({ sessionID: session.id, limit: 2 })
+
+          expect(latest.items.find((item) => item.info.id === assistantID)?.parts).toContainEqual(
+            expect.objectContaining({ id: part.id, text: part.text }),
+          )
+        } finally {
+          await Session.flushPartWrites(session.id)
+          await Session.remove(session.id)
+        }
+      },
+    })
+  })
+
+  test("does not hydrate parts outside the requested page", async () => {
+    await using tmp = await tmpdir({ git: true })
+    const originalParts = MessageV2.parts
+    const loadedMessageIDs: string[] = []
+    ;(MessageV2.parts as any) = mock(async (input: Parameters<typeof MessageV2.parts>[0]) => {
+      loadedMessageIDs.push(input.messageID)
+      return originalParts(input)
+    })
+
+    try {
+      await ScopeContext.provide({
+        scope: await tmp.scope(),
+        fn: async () => {
+          const session = await Session.create({ title: "Bounded page hydration" })
+          const ids = [1, 2, 3, 4].map((value) => legacyMessageID(value))
+          for (const [index, id] of ids.entries()) {
+            await writeUser(session.id, id, 1_000 + index)
+          }
+
+          const latest = await Session.messagePage({ sessionID: session.id, limit: 2 })
+
+          expect(latest.items.map((message) => message.info.id)).toEqual(ids.slice(2))
+          expect(latest.total).toBe(4)
+          expect(latest.hasMore).toBe(true)
+          expect(loadedMessageIDs).toEqual(ids.slice(2))
+
+          await Session.remove(session.id)
+        },
+      })
+    } finally {
+      ;(MessageV2.parts as any) = originalParts
+    }
   })
 
   test("rejects malformed, unsupported, and stale cursors", async () => {

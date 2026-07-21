@@ -9,14 +9,6 @@ import type {
 
 const Empty = () => null
 
-mock.module("@ericsanchezok/synergy-util/binary", () => ({
-  Binary: {
-    search: <T>(items: T[], value: string, getValue: (item: T) => string) => {
-      const index = items.findIndex((item) => getValue(item) === value)
-      return index >= 0 ? { found: true, index } : { found: false, index: -1 }
-    },
-  },
-}))
 mock.module("@ericsanchezok/synergy-util/model-limit", () => ({
   ModelLimit: {
     actualInput: (tokens: { input: number; cache: { read: number; write: number } }) =>
@@ -93,6 +85,7 @@ const {
   collectAssistantMessagesForTurn,
   collectCompactionParentIDs,
   collectMessagesForTurnDisplay,
+  collectMessagesForTurnLifecycle,
   collectSessionTurnTimelineItems,
   collectUserCompactionTimelineItems,
   isGuidedContextUserMessage,
@@ -102,6 +95,7 @@ const {
   formatTurnTokenCount,
   providerPreludeElapsedLabel,
   providerPreludeText,
+  resolveTurnWorking,
   shouldShowProviderPrelude,
   turnCompletionStats,
   timelineItemStableKey,
@@ -153,6 +147,13 @@ function completedAssistant(id: string): AssistantMessage {
   return {
     ...assistant(id),
     time: { created: 1, completed: 2 },
+  } as AssistantMessage
+}
+
+function terminalAssistant(id: string, finish = "stop"): AssistantMessage {
+  return {
+    ...completedAssistant(id),
+    finish,
   } as AssistantMessage
 }
 
@@ -305,11 +306,20 @@ function ordinaryTool(input: {
 }
 
 describe("session turn assistant collection", () => {
-  test("keeps guided inbox context inside the active turn", () => {
-    const firstUser = user("msg_001_user")
-    const toolStep = assistantFor("msg_002_assistant_tool", firstUser.id)
-    const guided = user("msg_003_user_guided", { isRoot: false, rootID: firstUser.id })
-    const final = assistantFor("msg_004_assistant_final", firstUser.id)
+  test("keeps guided inbox context inside the active turn when canonical order differs from ID order", () => {
+    const firstUser = { ...user("msg_z_user"), time: { created: 1 } } as UserMessage
+    const toolStep = {
+      ...assistantFor("msg_1_assistant_tool", firstUser.id),
+      time: { created: 2 },
+    } as AssistantMessage
+    const guided = {
+      ...user("msg_a_user_guided", { isRoot: false, rootID: firstUser.id }),
+      time: { created: 3 },
+    } as UserMessage
+    const final = {
+      ...assistantFor("msg_b_assistant_final", firstUser.id),
+      time: { created: 4 },
+    } as AssistantMessage
 
     expect(isGuidedContextUserMessage(guided)).toBe(true)
     expect(collectMessagesForTurnDisplay([firstUser, toolStep, guided, final] as MessageType[], firstUser.id)).toEqual([
@@ -324,12 +334,14 @@ describe("session turn assistant collection", () => {
     ).toEqual([toolStep.id, final.id])
   })
 
-  test("omits invisible non-root context from turn display", () => {
+  test("keeps invisible non-root context in lifecycle while omitting it from display", () => {
     const firstUser = user("msg_001_user")
     const hidden = user("msg_002_hidden", { isRoot: false, rootID: firstUser.id, visible: false })
     const final = assistantFor("msg_003_assistant_final", firstUser.id)
+    const messages = [firstUser, hidden, final] as MessageType[]
 
-    expect(collectMessagesForTurnDisplay([firstUser, hidden, final] as MessageType[], firstUser.id)).toEqual([final])
+    expect(collectMessagesForTurnLifecycle(messages, firstUser.id)).toEqual([hidden, final])
+    expect(collectMessagesForTurnDisplay(messages, firstUser.id)).toEqual([final])
   })
 
   test("projects only the active hidden compaction attempt into the turn", () => {
@@ -534,6 +546,81 @@ describe("session turn assistant collection", () => {
     expect(shouldShowTurnDiffs({ summary: { diffs: [diff], diffState: { status: "ready" } } })).toBe("ready")
     expect(shouldShowTurnDiffs({ summary: { diffs: [], diffState: { status: "ready" } } })).toBe("hidden")
     expect(shouldShowTurnDiffs({ summary: { diffs: [] } })).toBe("hidden")
+  })
+})
+
+describe("session turn working state", () => {
+  test("keeps a terminal turn settled when the session starts the next task", () => {
+    expect(
+      resolveTurnWorking({
+        isLastUserMessage: true,
+        messages: [terminalAssistant("assistant-terminal")],
+        sessionStatus: { type: "busy" },
+      }),
+    ).toBe(false)
+  })
+
+  test("keeps working when a hidden same-root continuation follows the terminal reply", () => {
+    const root = user("user")
+    const terminal = terminalAssistant("assistant-terminal")
+    const continuation = user("continuation", { isRoot: false, rootID: root.id, visible: false })
+    const messages = collectMessagesForTurnLifecycle([root, terminal, continuation] as MessageType[], root.id)
+
+    expect(
+      resolveTurnWorking({
+        isLastUserMessage: true,
+        messages,
+        sessionStatus: { type: "busy" },
+      }),
+    ).toBe(true)
+  })
+
+  test("keeps an error-finished turn settled when the session is busy", () => {
+    expect(
+      resolveTurnWorking({
+        isLastUserMessage: true,
+        messages: [terminalAssistant("assistant-error", "error")],
+        sessionStatus: { type: "busy" },
+      }),
+    ).toBe(false)
+  })
+
+  test("keeps working after a non-terminal tool-call assistant", () => {
+    expect(
+      resolveTurnWorking({
+        isLastUserMessage: true,
+        messages: [terminalAssistant("assistant-tools", "tool-calls")],
+        sessionStatus: { type: "busy" },
+      }),
+    ).toBe(true)
+  })
+
+  test("uses the runtime status for an incomplete assistant", () => {
+    const running = assistant("assistant-running")
+    expect(
+      resolveTurnWorking({
+        isLastUserMessage: true,
+        messages: [running],
+        sessionStatus: { type: "busy" },
+      }),
+    ).toBe(true)
+    expect(
+      resolveTurnWorking({
+        isLastUserMessage: true,
+        messages: [running],
+        sessionStatus: { type: "idle" },
+      }),
+    ).toBe(false)
+  })
+
+  test("never marks an older turn as working", () => {
+    expect(
+      resolveTurnWorking({
+        isLastUserMessage: false,
+        messages: [assistant("assistant-running")],
+        sessionStatus: { type: "busy" },
+      }),
+    ).toBe(false)
   })
 })
 

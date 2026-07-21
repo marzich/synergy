@@ -145,12 +145,13 @@ describe("workbench surface polarity", () => {
     expect(workbenchSurfaceCss).toContain(".workbench-surface-add-wrap")
     expect(workbenchSurface).toContain("<Popover")
     expect(workbenchSurface).toContain('aria-haspopup="menu"')
-    expect(workbenchSurface).toContain("if (local.addOpen)")
+    expect(workbenchSurface).toContain("resolveWorkbenchEscapeAction")
     expect(workbenchSurfaceCss).toContain('.workbench-surface-add-menu [data-slot="popover-body"]')
     expect(builtinWorkbenchPanels).not.toContain("DialogSelectFile")
     expect(builtinWorkbenchPanels).toContain('return { title: i18n._(P.openFile), source: "explorer" }')
     expect(builtinWorkbenchPanels).toContain("controller.activeLocale()")
     expect(builtinWorkbenchPanels).toContain("label: i18n._(P.files)")
+    expect(builtinWorkbenchPanels).toContain("createContextWorkbenchPanel(i18n._(P.context))")
   })
 
   test("workbench surfaces close instead of persisting empty launchers", () => {
@@ -210,7 +211,7 @@ describe("workbench surface polarity", () => {
   })
 
   test("question prompts use a dedicated decision surface instead of a generic tool card", () => {
-    expect(questionPrompt).toContain('<section class="question-prompt-shell"')
+    expect(questionPrompt).toContain('class="question-prompt-shell"')
     expect(questionPrompt).toContain("question-prompt-option")
     expect(questionPrompt).toContain('class="question-prompt-option question-prompt-other-trigger"')
     expect(questionPrompt).toContain("question-prompt-skip")
@@ -227,6 +228,16 @@ describe("workbench surface polarity", () => {
     expect(questionPromptCss).toContain(".question-prompt-option.is-picked")
     expect(questionPromptCss).toContain(".question-prompt-option-copy")
     expect(questionPromptCss).toContain(".question-prompt-footer")
+    expect(questionPrompt).toContain('role={multi() ? "checkbox" : "radio"}')
+    expect(questionPrompt).toContain("aria-checked={picked()}")
+    expect(questionPrompt).toContain("question-prompt-option-shortcut")
+    expect(questionPrompt).toContain("question-prompt-meta")
+    expect(questionPrompt).toContain('getSemanticIcon("action.more")')
+    expect(questionPrompt).toContain("scopeActive")
+    expect(questionPrompt).toContain("Boolean(root?.contains(activeElement))")
+    expect(questionPrompt).not.toContain("question-prompt-header-actions")
+    expect(questionPromptCss).toContain(".question-prompt-choice-hint")
+    expect(questionPromptCss).toContain(".question-prompt-option-shortcut")
   })
 
   test("generic surface utilities used by the frontend are covered by workbench mappings", () => {

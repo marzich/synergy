@@ -520,6 +520,8 @@ export type PerfDashboardSummary = {
     rssBytes?: number
     heapUsedBytes?: number
     heapTotalBytes?: number
+    externalBytes?: number
+    arrayBuffersBytes?: number
     cpuUtilizationRatio?: number
     eventLoopLagP95Ms?: number
     appReadBytes?: number
@@ -560,6 +562,35 @@ export type PerfDashboardSummary = {
       childCount: number
       userCount: number
       waiterCount: number
+    }
+    messageCache?: {
+      totalBytes: number
+      activeCount: number
+      entryCount: number
+      hits: number
+      misses: number
+      evictions: number
+      protectedOverbudget: number
+      entries: Array<{
+        estimatedBytes: number
+      }>
+      truncatedEntryCount: number
+    }
+    llmTurns?: {
+      activeTurnCount: number
+      activeStreamCount: number
+      turns: Array<{
+        ageMs: number
+        streamActive: boolean
+        providerID: string
+        modelID: string
+        historyBeforeBytes: number
+        historyAfterBytes: number
+        requestBytes: number
+        toolSchemaBytes: number
+        outputChars: number
+        toolRawChars: number
+      }>
     }
     cortexTasks: {
       totalCount: number
@@ -908,6 +939,105 @@ export type HolosReconnectResponse = {
   success: true
 }
 
+export type SynergyLinkHostObservation = {
+  type: "synergy_link.host.hello"
+  /**
+   * Synergy Link target identifier
+   */
+  linkID: string
+  /**
+   * Synergy Link host session identifier
+   */
+  hostSessionID: string
+  capabilities: {
+    platform: string
+    arch: string
+    hostname?: string
+    runtime: "node" | "bun" | "unknown"
+    defaultShell: "none" | "sh" | "cmd" | "powershell" | "pwsh"
+    supportedShells: Array<"none" | "sh" | "cmd" | "powershell" | "pwsh">
+    supportsPty: boolean
+    supportsSendKeys: boolean
+    supportsSoftKill: boolean
+    supportsProcessGroups: boolean
+    envCaseInsensitive: boolean
+    lineEndings: "lf" | "crlf"
+  }
+  observedAt: number
+}
+
+export type SynergyLinkProbe = {
+  status: "reachable" | "refused" | "busy" | "failed"
+  checkedAt: number
+}
+
+export type SynergyLinkTargetView = {
+  id: string
+  name: string
+  enabled: boolean
+  targetAgentID: string
+  /**
+   * Synergy Link target identifier
+   */
+  linkID: string
+  allowedAgents: Array<string>
+  authorization: "unverified" | "approved" | "revoked"
+  host?: SynergyLinkHostObservation
+  lastProbe?: SynergyLinkProbe
+  createdAt: number
+  updatedAt: number
+  availability: "holos_offline" | "idle" | "connected"
+  /**
+   * Synergy Link session identifier
+   */
+  sessionID?: string
+}
+
+export type SynergyLinkTarget = {
+  id: string
+  name: string
+  enabled: boolean
+  targetAgentID: string
+  /**
+   * Synergy Link target identifier
+   */
+  linkID: string
+  allowedAgents: Array<string>
+  authorization: "unverified" | "approved" | "revoked"
+  host?: SynergyLinkHostObservation
+  lastProbe?: SynergyLinkProbe
+  createdAt: number
+  updatedAt: number
+}
+
+export type SynergyLinkTargetCreateInput = {
+  name: string
+  targetAgentID: string
+  /**
+   * Synergy Link target identifier
+   */
+  linkID: string
+  enabled?: boolean
+  allowedAgents?: Array<string>
+}
+
+export type NotFoundError = {
+  name: "NotFoundError"
+  data: {
+    message: string
+  }
+}
+
+export type SynergyLinkTargetPatchInput = {
+  name?: string
+  enabled?: boolean
+  allowedAgents?: Array<string>
+}
+
+export type SynergyLinkTargetRemoveResult = {
+  success: true
+}
+
 export type AgendaTriggerAt = {
   type: "at"
   /**
@@ -1018,23 +1148,13 @@ export type ChannelInfo = {
   createdAt?: number
 }
 
-export type SessionChannelEndpoint = {
-  kind: "channel"
-  channel: ChannelInfo
-}
-
-export type SessionClarusEndpoint = {
-  kind: "clarus"
-  role: "project" | "task"
-  agentId: string
-  projectId: string
-  taskId?: string
-}
-
 /**
  * Endpoint context if created from a session endpoint
  */
-export type SessionEndpoint = SessionChannelEndpoint | SessionClarusEndpoint
+export type SessionEndpoint = {
+  kind: "channel"
+  channel: ChannelInfo
+}
 
 /**
  * Context captured at creation time
@@ -1152,17 +1272,15 @@ export type SessionNavEntry = {
   scopeID: string
   scopeType: "home" | "project"
   title: string
-  category: "project" | "home" | "channel" | "background" | "clarus"
+  category: "project" | "home" | "channel" | "background" | "github"
   lastActivityAt: number
   pinned: number
   archived: boolean
   parentID?: string
-  endpointKind?: "channel" | "clarus"
+  endpointKind?: "channel"
   chatId?: string
   chatName?: string
   chatType?: "dm" | "group"
-  clarusProjectId?: string
-  clarusTaskId?: string
   completionNotice: {
     unread: boolean
     unreadCount: number
@@ -1186,203 +1304,8 @@ export type PinnedResponse = {
   total: number
 }
 
-export type ClarusStatusResponse = {
-  agentId: string | null
-  status: "disabled" | "disconnected" | "connecting" | "connected" | "reconnecting" | "blocked" | "sync_failed"
-  epoch: number
-  generation: number
-  isReconciling: boolean
-  error?: string
-}
-
-export type ClarusReconnectResponse = {
-  agentId: string | null
-  status: "disabled" | "disconnected" | "connecting" | "connected" | "reconnecting" | "blocked" | "sync_failed"
-  epoch: number
-  generation: number
-  isReconciling: boolean
-  error?: string
-}
-
-export type ClarusProjectBindingItem = {
-  agentId: string
-  projectId: string
-  lifecycle: string
-  projectName?: string
-  projectSlug?: string
-  projectStatus?: string
-  primaryAgent?: string | null
-  desiredSubscription: boolean
-  messageCursor?: string | null
-  lastProjectActivityAt?: number
-  lastReconciliationAt?: number
-  lastReconciliationError?: string | null
-  createdAt: number
-  updatedAt: number
-}
-
-export type ClarusProjectBindingListResponse = {
-  items: Array<ClarusProjectBindingItem>
-  nextCursor: string | null
-}
-
-export type ClarusErrorDetail = {
-  code: string
-  message: string
-  recoverable: boolean
-  disposition?: "not_dispatched" | "rejected" | "ambiguous"
-  reason?:
-    | "timeout"
-    | "aborted_after_dispatch"
-    | "disconnected"
-    | "invalid_response"
-    | "unexpected_response"
-    | "unknown"
-}
-
-export type ClarusProjectBindingCreateInput = {
-  projectId: string
-  projectName: string
-  projectSlug?: string
-  projectStatus?: string
-  primaryAgent?: string | null
-}
-
-export type ClarusProjectBindingUpdateInput = {
-  projectName?: string
-  projectSlug?: string
-  projectStatus?: string
-  primaryAgent?: string | null
-}
-
-export type ClarusWireMetadataValue =
-  | string
-  | number
-  | boolean
-  | null
-  | Array<unknown>
-  | {
-      [key: string]: unknown
-    }
-
-export type ClarusProjectActivityItem = {
-  agentId: string
-  projectId: string
-  messageId: string
-  senderType?: string
-  senderId?: string
-  messageType?: string
-  content?: string
-  fileRefs?: Array<ClarusWireMetadataValue>
-  metadata?: {
-    [key: string]: ClarusWireMetadataValue
-  }
-  createdAt?: string
-  receivedAt: number
-}
-
-export type ClarusProjectActivityResponse = {
-  items: Array<ClarusProjectActivityItem>
-  nextCursor: string | null
-}
-
-export type ClarusTaskBindingItem = {
-  agentId: string
-  projectId: string
-  taskId: string
-  sessionID: string
-  runID: string
-  subtaskID: string
-  phase: string
-  attempt: number
-  deadlineAt?: string | null
-  title: string
-  status: string
-  resultState: string
-  contextHydration: string
-  createdAt: number
-  updatedAt: number
-}
-
-export type ClarusTaskBindingListResponse = {
-  items: Array<ClarusTaskBindingItem>
-  nextCursor: string | null
-  total: number
-}
-
-export type ClarusComposerUserItem = {
-  userId: string
-  userName: string
-  agentId: string
-}
-
-export type ClarusComposerProjectItem = {
-  projectId: string
-  projectName: string
-}
-
-export type ClarusComposerSubmitResponse = {
-  requestID: string
-  messageId: string
-  projectId: string
-  senderId: string
-  userId?: string
-  epoch: number
-  generation: number
-}
-
-export type ClarusComposerSubmitInput = {
-  projectId: string
-  agentId: string
-  userId: string
-  content: string
-  messageType?: string
-  fileRefs?: Array<{
-    [key: string]: ClarusWireMetadataValue
-  }>
-}
-
-export type ClarusNavigationProjectDto = {
-  agentId: string
-  projectId: string
-  projectName?: string
-  projectSlug?: string
-  activeGroup: boolean
-  projectStatus?: string
-  primaryAgent?: string | null
-  lastProjectActivityAt?: number
-  createdAt: number
-  updatedAt: number
-}
-
-export type ClarusNavigationTaskDto = {
-  agentId: string
-  taskId: string
-  projectId: string
-  sessionID: string
-  title: string
-  status: string
-  resultState: string
-  phase: string
-  attempt: number
-  deadlineAt?: string | null
-  contextHydration: string
-  localContinuationEnabledAt?: number
-  resultRecordedAt?: number
-  runID: string
-  subtaskID: string
-  createdAt: number
-  updatedAt: number
-}
-
-export type ClarusNavigationResponse = {
-  connection: {
-    status: "disabled" | "connected" | "reconnecting" | "sign_in_required" | "sync_failed"
-    agentId: string | null
-    error?: string
-  }
-  projects: Array<ClarusNavigationProjectDto>
-  tasks: Array<ClarusNavigationTaskDto>
+export type GitHubConfiguredResponse = {
+  configured: boolean
 }
 
 export type AgendaWebhookResult = {
@@ -1423,21 +1346,211 @@ export type ScopeNavEntry = {
   }
 }
 
-export type NotFoundError = {
-  name: "NotFoundError"
-  data: {
-    message: string
+export type Model = {
+  id: string
+  providerID: string
+  api: {
+    id: string
+    url: string
+    npm: string
+  }
+  name: string
+  family?: string
+  capabilities: {
+    temperature: boolean
+    reasoning: boolean
+    reasoningEfforts?: Array<string>
+    attachment: boolean
+    toolcall: boolean
+    input: {
+      text: boolean
+      audio: boolean
+      image: boolean
+      video: boolean
+      pdf: boolean
+      supportedImageMediaTypes?: Array<string>
+    }
+    output: {
+      text: boolean
+      audio: boolean
+      image: boolean
+      video: boolean
+      pdf: boolean
+    }
+    interleaved:
+      | boolean
+      | {
+          field: "reasoning_content" | "reasoning_details"
+        }
+  }
+  cost: {
+    input: number
+    output: number
+    cache: {
+      read: number
+      write: number
+    }
+    experimentalOver200K?: {
+      input: number
+      output: number
+      cache: {
+        read: number
+        write: number
+      }
+    }
+  }
+  limit: {
+    context: number
+    input?: number
+    output: number
+  }
+  status: "alpha" | "beta" | "deprecated" | "active"
+  options: {
+    [key: string]: unknown
+  }
+  headers: {
+    [key: string]: string
+  }
+  release_date: string
+  variants?: {
+    [key: string]: {
+      [key: string]: unknown
+    }
   }
 }
 
-export type Pty = {
+export type Provider = {
   id: string
-  title: string
-  command: string
-  args: Array<string>
-  cwd: string
-  status: "running" | "exited"
-  pid: number
+  name: string
+  source: "env" | "config" | "custom" | "api"
+  env: Array<string>
+  key?: string
+  options: {
+    [key: string]: unknown
+  }
+  models: {
+    [key: string]: Model
+  }
+}
+
+export type ProviderRecommendation = {
+  level: "featured" | "recommended" | "standard"
+  rank?: number
+  headline?: string
+  reason?: string
+  cta?: {
+    kind: "external"
+    label: string
+    url: string
+  }
+  defaultModel?: string
+}
+
+export type ProviderProfileMetadata = {
+  id: string
+  name: string
+  displayName?: string
+  description?: string
+  signupUrl?: string
+  authKind?: string
+  environment?: Array<string>
+  recommendation?: ProviderRecommendation
+}
+
+export type ProviderAuthHealth = {
+  providerID: string
+  status: "connected" | "not_configured" | "exhausted" | "action_required"
+  recovery?: "reconnect" | "update_environment"
+  authKind?: string
+  source?: string
+  updatedAt?: number
+  cooldownUntil?: number
+  resetAt?: number
+  failureCode?: string
+}
+
+export type ProviderRuntimeAvailability = {
+  providerID: string
+  available: boolean
+  reason?:
+    | "connected"
+    | "not_connected"
+    | "disabled"
+    | "no_models"
+    | "authentication_required"
+    | "exhausted"
+    | "fallback_unverified"
+  healthCheck?: "models" | "none"
+  modelCount: number
+}
+
+export type ProviderListResponse = {
+  all: Array<Provider>
+  default: {
+    [key: string]: string
+  }
+  connected: Array<string>
+  configProviders: Array<string>
+  catalogProviders: Array<string>
+  profiles: {
+    [key: string]: ProviderProfileMetadata
+  }
+  authHealth: {
+    [key: string]: ProviderAuthHealth
+  }
+  runtimeAvailability: {
+    [key: string]: ProviderRuntimeAvailability
+  }
+}
+
+export type PermissionAction = "allow" | "deny" | "ask"
+
+export type PermissionRule = {
+  permission: string
+  pattern: string
+  action: PermissionAction
+}
+
+export type PermissionRuleset = Array<PermissionRule>
+
+export type ModelRole = "vision" | "nano" | "mini" | "mid" | "thinking" | "long" | "creative"
+
+export type ExternalAgentInfo = {
+  adapter: string
+  path?: string
+  version?: string
+  config?: {
+    [key: string]: unknown
+  }
+}
+
+export type Agent = {
+  name: string
+  description?: string
+  mode: "subagent" | "primary" | "all"
+  native?: boolean
+  hidden?: boolean
+  visibleTo?: Array<string>
+  delegationGroups?: Array<string>
+  topP?: number
+  temperature?: number
+  color?: string
+  permission: PermissionRuleset
+  controlProfile?: "guarded" | "autonomous" | "full_access"
+  model?: {
+    modelID: string
+    providerID: string
+  }
+  modelRole?: ModelRole
+  modelSource?: "role" | "explicit"
+  source?: "builtin" | "config" | "plugin" | "external"
+  prompt?: string
+  options: {
+    [key: string]: unknown
+  }
+  steps?: number
+  external?: ExternalAgentInfo
+  defaultVariant?: string
 }
 
 /**
@@ -1814,6 +1927,58 @@ export type ServerConfig = {
 }
 
 /**
+ * Outbound GitHub App polling and automation configuration
+ */
+export type GitHubIntegrationConfig = {
+  enabled?: boolean
+  watchedRepositories?: Array<string>
+  eventTypes?: Array<string>
+  ciFailureThreshold?: number
+  ciFailureWindowHours?: number
+  modelBudgetNano?: {
+    maxTokens: number
+    maxCost: number
+  }
+  modelBudgetProposal?: {
+    maxTokens: number
+    maxCost: number
+  }
+  classifierEnabled?: boolean
+  proposalEnabled?: boolean
+  polling?: {
+    enabled?: boolean
+    intervalMs?: number
+    overlapWindowMs?: number
+    pageSize?: number
+    maxPages?: number
+  }
+  fixWorkflow?: {
+    enabled?: boolean
+    repositoryMapping?: {
+      [key: string]: string
+    }
+    maxRetries?: number
+    timeoutMs?: number
+    locatorAgent?: string
+    agent?: string
+    pushBranchPrefix?: string
+  }
+  reviewWorkflow?: {
+    enabled?: boolean
+    repositoryMapping?: {
+      [key: string]: string
+    }
+    eventTypes?: Array<string>
+    reviewCommands?: Array<string>
+    maxRetries?: number
+    timeoutMs?: number
+    agent?: string
+    publishReviewComment?: boolean
+    publishCheckRun?: boolean
+  }
+}
+
+/**
  * Plugin approval policy configuration
  */
 export type PluginApprovalPolicyConfig = {
@@ -1960,8 +2125,6 @@ export type QuickSwitcherConfig = {
    */
   models?: Array<QuickSwitcherModelConfig>
 }
-
-export type ModelRole = "vision" | "nano" | "mini" | "mid" | "thinking" | "long" | "creative"
 
 export type PermissionActionConfig = "ask" | "allow" | "deny"
 
@@ -2741,6 +2904,25 @@ export type ChannelFeishuConfig = {
   streaming?: boolean
 }
 
+export type ChannelClarusAccountConfig = {
+  enabled?: boolean
+  /**
+   * Clarus REST API origin override; defaults to the configured Holos API origin
+   */
+  apiUrl?: string
+  /**
+   * Primary Synergy agent for project and assignment Sessions
+   */
+  agent?: string
+}
+
+export type ChannelClarusConfig = {
+  type: "clarus"
+  accounts: {
+    [key: string]: ChannelClarusAccountConfig
+  }
+}
+
 /**
  * Sandbox configuration for workspace boundary enforcement
  */
@@ -2947,24 +3129,6 @@ export type HolosConfig = {
 }
 
 /**
- * Clarus project binding and task session routing configuration
- */
-export type ClarusConfig = {
-  /**
-   * Enable Clarus project binding and task session routing
-   */
-  enabled?: boolean
-  /**
-   * Absolute path where Clarus project workspaces are stored (defaults to ~/.synergy/data/clarus-workspaces)
-   */
-  workspaceRoot?: string
-  /**
-   * Clarus REST API origin override (defaults to holos.apiUrl). Must be an HTTPS origin or loopback HTTP.
-   */
-  apiUrl?: string
-}
-
-/**
  * Sender identity for outgoing emails
  */
 export type EmailFromConfig = {
@@ -3144,6 +3308,7 @@ export type Config = {
      */
     maxConcurrentTasks?: number
   }
+  github?: GitHubIntegrationConfig
   watcher?: {
     ignore?: Array<string>
   }
@@ -3253,13 +3418,12 @@ export type Config = {
    * Channel configurations for messaging platform integrations
    */
   channel?: {
-    [key: string]: ChannelFeishuConfig
+    [key: string]: ChannelFeishuConfig | ChannelClarusConfig
   }
   sandbox?: SandboxConfig
   observability?: ObservabilityConfig
   controlProfile?: ControlProfileId
   holos?: HolosConfig
-  clarus?: ClarusConfig
   email?: EmailConfig
   formatter?:
     | false
@@ -3411,416 +3575,7 @@ export type Config = {
   }
 }
 
-export type ConfigInstructionsInfo = {
-  content: string
-  source: "override" | "primary" | "empty"
-  sourceFilename: "AGENTS.override.md" | "AGENTS.md" | null
-  editableFilename: "AGENTS.override.md"
-  hasOverride: boolean
-  maxBytes: number
-}
-
-export type ConfigInstructionsUpdateInput = {
-  content: string
-}
-
-export type ConfigDomainSummary = {
-  id:
-    | "general"
-    | "models"
-    | "providers"
-    | "library"
-    | "mcp"
-    | "plugins"
-    | "agents"
-    | "commands"
-    | "permissions"
-    | "channels"
-    | "holos"
-    | "clarus"
-    | "email"
-    | "runtime"
-  filename: string
-  label: string
-  path: string
-  ownedKeys: Array<string>
-  mergePolicy: "merge" | "replace-domain" | "append"
-  reloadTargets: Array<string>
-  uiSection: string
-  importable: boolean
-  config?: Config
-}
-
-export type ConfigDomainUpdateInput = {
-  config: Config
-  mode?: "merge" | "replace-domain" | "append"
-}
-
-export type ConfigDomainOpenResponse = {
-  success: true
-  path: string
-}
-
-export type ConfigDomainOpenError = {
-  success: false
-  error: string
-  message: string
-  path?: string
-}
-
-export type ConfigImportScope = "global" | "project"
-
-export type ConfigImportDiagnostic = {
-  severity: "warning" | "info"
-  code: string
-  message: string
-  path?: string
-}
-
-export type ConfigDomainImportChange = {
-  key: string
-  type: "add" | "modify" | "remove"
-  before?: unknown
-  after?: unknown
-  conflict: boolean
-  diagnostics: Array<ConfigImportDiagnostic>
-}
-
-export type ConfigDomainImportDomainPlan = {
-  id:
-    | "general"
-    | "models"
-    | "providers"
-    | "library"
-    | "mcp"
-    | "plugins"
-    | "agents"
-    | "commands"
-    | "permissions"
-    | "channels"
-    | "holos"
-    | "clarus"
-    | "email"
-    | "runtime"
-  filename: string
-  path: string
-  mode: "merge" | "replace-domain" | "append"
-  revision: string
-  changes: Array<ConfigDomainImportChange>
-}
-
-export type ConfigDomainImportPlan = {
-  scope: ConfigImportScope
-  scopeID: string
-  source: string
-  revision: string
-  domains: Array<ConfigDomainImportDomainPlan>
-  conflicts: Array<ConfigDomainImportChange>
-}
-
-export type ConfigImportProjectScopeRequiredError = {
-  name: "ConfigImportProjectScopeRequiredError"
-  data: {
-    message: string
-  }
-}
-
-export type ConfigImportInvalidConfigError = {
-  name: "ConfigInvalidError"
-  data: {
-    path: string
-    issues?: Array<unknown>
-    message?: string
-  }
-}
-
-export type ConfigImportSourceTooLargeError = {
-  name: "ConfigImportSourceTooLargeError"
-  data: {
-    message: string
-    source: string
-    maxBytes: number
-  }
-}
-
-export type ConfigDomainImportPlanInput = {
-  config: Config
-  only?: Array<
-    | "general"
-    | "models"
-    | "providers"
-    | "library"
-    | "mcp"
-    | "plugins"
-    | "agents"
-    | "commands"
-    | "permissions"
-    | "channels"
-    | "holos"
-    | "clarus"
-    | "email"
-    | "runtime"
-  >
-  mode?: "merge" | "replace-domain" | "append"
-  scope?: ConfigImportScope
-  source?: string
-}
-
-export type RuntimeReloadTarget =
-  | "config"
-  | "skill"
-  | "provider"
-  | "agent"
-  | "plugin"
-  | "mcp"
-  | "lsp"
-  | "formatter"
-  | "watcher"
-  | "channel"
-  | "holos"
-  | "command"
-  | "tool_registry"
-  | "all"
-
-export type RuntimeReloadFailure = {
-  target: RuntimeReloadTarget
-  message: string
-  code?: string
-  name?: string
-  path?: string
-  phase?: string
-  recoverable?: boolean
-}
-
-export type RuntimeReloadDiagnostic = {
-  target: RuntimeReloadTarget
-  severity: "error" | "warning" | "info"
-  message: string
-  code?: string
-  name?: string
-  path?: string
-  phase?: string
-  source?: string
-}
-
-export type RuntimeReloadResult = {
-  success: boolean
-  requested: Array<RuntimeReloadTarget>
-  executed: Array<RuntimeReloadTarget>
-  cascaded: Array<RuntimeReloadTarget>
-  changedFields: Array<string>
-  restartRequired: Array<string>
-  liveApplied: Array<string>
-  warnings: Array<string>
-  failed: Array<RuntimeReloadTarget>
-  failures: Array<RuntimeReloadFailure>
-  diagnostics: Array<RuntimeReloadDiagnostic>
-}
-
-export type ConfigDomainImportApplyResult = {
-  plan: ConfigDomainImportPlan
-  reload: RuntimeReloadResult
-}
-
-export type ConfigImportRevisionConflictError = {
-  name: "ConfigImportRevisionConflictError"
-  data: {
-    message: string
-    domains: Array<
-      | "general"
-      | "models"
-      | "providers"
-      | "library"
-      | "mcp"
-      | "plugins"
-      | "agents"
-      | "commands"
-      | "permissions"
-      | "channels"
-      | "holos"
-      | "clarus"
-      | "email"
-      | "runtime"
-    >
-  }
-}
-
-export type ConfigImportLockedError = {
-  name: "ConfigImportLockedError"
-  data: {
-    message: string
-    scope: ConfigImportScope
-  }
-}
-
-export type ConfigDomainImportApplyInput = {
-  config: Config
-  only?: Array<
-    | "general"
-    | "models"
-    | "providers"
-    | "library"
-    | "mcp"
-    | "plugins"
-    | "agents"
-    | "commands"
-    | "permissions"
-    | "channels"
-    | "holos"
-    | "clarus"
-    | "email"
-    | "runtime"
-  >
-  mode?: "merge" | "replace-domain" | "append"
-  scope?: ConfigImportScope
-  source?: string
-  revision?: string
-  yes?: boolean
-  force?: boolean
-}
-
-export type Model = {
-  id: string
-  providerID: string
-  api: {
-    id: string
-    url: string
-    npm: string
-  }
-  name: string
-  family?: string
-  capabilities: {
-    temperature: boolean
-    reasoning: boolean
-    reasoningEfforts?: Array<string>
-    attachment: boolean
-    toolcall: boolean
-    input: {
-      text: boolean
-      audio: boolean
-      image: boolean
-      video: boolean
-      pdf: boolean
-      supportedImageMediaTypes?: Array<string>
-    }
-    output: {
-      text: boolean
-      audio: boolean
-      image: boolean
-      video: boolean
-      pdf: boolean
-    }
-    interleaved:
-      | boolean
-      | {
-          field: "reasoning_content" | "reasoning_details"
-        }
-  }
-  cost: {
-    input: number
-    output: number
-    cache: {
-      read: number
-      write: number
-    }
-    experimentalOver200K?: {
-      input: number
-      output: number
-      cache: {
-        read: number
-        write: number
-      }
-    }
-  }
-  limit: {
-    context: number
-    input?: number
-    output: number
-  }
-  status: "alpha" | "beta" | "deprecated" | "active"
-  options: {
-    [key: string]: unknown
-  }
-  headers: {
-    [key: string]: string
-  }
-  release_date: string
-  variants?: {
-    [key: string]: {
-      [key: string]: unknown
-    }
-  }
-}
-
-export type Provider = {
-  id: string
-  name: string
-  source: "env" | "config" | "custom" | "api"
-  env: Array<string>
-  key?: string
-  options: {
-    [key: string]: unknown
-  }
-  models: {
-    [key: string]: Model
-  }
-}
-
-export type RuntimeReloadScope = "auto" | "global" | "project"
-
-export type ControlProfileSummary = {
-  id: "guarded" | "autonomous" | "full_access"
-  label: string
-  description: string
-}
-
-export type EffectiveProfileResult = {
-  profileId: string
-  label: string
-  source: "agent" | "config" | "default"
-  configProfile?: string
-  agentProfile?: string
-  agentName?: string
-}
-
-export type SandboxStatus = {
-  platform: string
-  available: boolean
-  backend: string | null
-  supported: boolean
-}
-
-export type SandboxReadinessCheck = {
-  id: string
-  label: string
-  status: "pass" | "warn" | "fail"
-  detail: string
-  recovery?: {
-    action: string
-    label: string
-    command: string
-  }
-}
-
-export type SandboxReadiness = {
-  platform: "macos" | "linux" | "windows" | "unsupported"
-  backend: string | null
-  ready: boolean
-  checks: Array<SandboxReadinessCheck>
-  summary: string
-}
-
-export type ToolIds = Array<string>
-
-export type ToolListItem = {
-  id: string
-  description: string
-  parameters: unknown
-}
-
-export type ToolList = Array<ToolListItem>
-
-export type Path = {
+export type ScopeBootstrapPath = {
   home: string
   state: string
   config: string
@@ -3828,56 +3583,39 @@ export type Path = {
   directory: string
 }
 
-export type Worktree = {
-  id: string
+export type Command = {
   name: string
-  branch?: string
-  path: string
-  scopeID: string
-  head?: string
-  baseRef?: string
-  baseRevision?: string
-  resolvedBaseCommit?: string
-  detached?: boolean
-  bare?: boolean
-  isMain?: boolean
-  managed?: boolean
-  stale?: boolean
-  dirty?: boolean
-  diskBytes?: number
-  owner?:
-    | {
-        type: "session"
-        sessionID: string
-      }
-    | {
-        type: "superplan"
-        runID: string
-        nodeID?: string
-        mergeID?: string
-      }
-    | {
-        type: "user"
-      }
-    | {
-        type: "external"
-      }
-  bindings?: Array<string>
-  lifecycle?: "active" | "detached" | "gc_candidate" | "deleted"
-  createdAt?: number
-  updatedAt?: number
-  lastUsedAt?: number
-  setupFailed?: boolean
-  setupError?: string
+  description?: string
+  kind?: "prompt" | "action"
+  surfaces?: Array<"web" | "cli" | "channel">
+  promptVisible?: boolean
+  agent?: string
+  model?: string
+  mcp?: boolean
+  source?: "command" | "mcp" | "skill"
+  action?: string
+  template?: string
+  hints: Array<string>
 }
 
-export type WorktreeCreateInput = {
-  name?: string
-  sessionID?: string
-  baseRef?: "current" | "fresh"
-  baseRevision?: string
-  bind?: boolean
-}
+export type SessionStatus =
+  | {
+      type: "idle"
+    }
+  | {
+      type: "retry"
+      attempt: number
+      message: string
+      next: number
+    }
+  | {
+      type: "busy"
+      description?: string
+    }
+  | {
+      type: "recovering"
+      description?: string
+    }
 
 export type SessionScope = {
   id: string
@@ -3908,16 +3646,6 @@ export type FileDiff = {
   afterBytes?: number
   truncated?: boolean
 }
-
-export type PermissionAction = "allow" | "deny" | "ask"
-
-export type PermissionRule = {
-  permission: string
-  pattern: string
-  action: PermissionAction
-}
-
-export type PermissionRuleset = Array<PermissionRule>
 
 export type SessionCompletionNotice = {
   unread: boolean
@@ -4050,7 +3778,27 @@ export type SessionWorkflowInfo =
     }
   | {
       kind: "lightloop"
-      taskDescription: string
+      instructions: string
+      status?: "running" | "reviewing" | "completed" | "failed" | "cancelled" | "timed_out" | "iteration_exhausted"
+      executionAgent?: string
+      reviewAgent?: string
+      pluginOwner?: {
+        pluginId: string
+        pluginGeneration: string
+        scopeId: string
+        correlationId?: string
+      }
+      budget?: {
+        maxRuntimeMs: number
+        maxIterations: number
+      }
+      deadlineAt?: number
+      terminalError?: string
+      terminalHookDeliveredAt?: number
+      terminalHookError?: string
+      reviewTools?: {
+        [key: string]: boolean
+      }
       stopRequest?: {
         summary: string
         completed?: Array<string>
@@ -4084,7 +3832,8 @@ export type Session = {
     messageID?: string
     title?: string
   }
-  category?: "project" | "home" | "channel" | "background" | "clarus"
+  category?: "project" | "home" | "channel" | "background" | "github"
+  provenance?: "github"
   endpoint?: SessionEndpoint
   summary?: {
     additions: number
@@ -4144,6 +3893,588 @@ export type Session = {
   workflow?: SessionWorkflowInfo
 }
 
+export type ScopeBootstrapSessions = {
+  data: Array<Session>
+  total: number
+  offset: number
+  limit: number
+}
+
+export type McpStatusUninitialized = {
+  status: "uninitialized"
+}
+
+export type McpStatusStarting = {
+  status: "starting"
+}
+
+export type McpStatusConnecting = {
+  status: "connecting"
+}
+
+export type McpStatusListingTools = {
+  status: "listing_tools"
+}
+
+export type McpStatusConnected = {
+  status: "connected"
+}
+
+export type McpStatusReconnecting = {
+  status: "reconnecting"
+  attempt: number
+  maxAttempts: number
+}
+
+export type McpStatusFailed = {
+  status: "failed"
+  error: string
+}
+
+export type McpStatusDisabled = {
+  status: "disabled"
+}
+
+export type McpStatusNeedsAuth = {
+  status: "needs_auth"
+}
+
+export type McpStatusNeedsClientRegistration = {
+  status: "needs_client_registration"
+  error: string
+}
+
+export type McpStatusStopping = {
+  status: "stopping"
+}
+
+export type McpStatus =
+  | McpStatusUninitialized
+  | McpStatusStarting
+  | McpStatusConnecting
+  | McpStatusListingTools
+  | McpStatusConnected
+  | McpStatusReconnecting
+  | McpStatusFailed
+  | McpStatusDisabled
+  | McpStatusNeedsAuth
+  | McpStatusNeedsClientRegistration
+  | McpStatusStopping
+
+export type CortexTask = {
+  id: string
+  sessionID: string
+  parentSessionID: string
+  parentMessageID: string
+  description: string
+  prompt: string
+  agent: string
+  model?: {
+    providerID: string
+    modelID: string
+  }
+  executionRole?: "primary" | "delegated_subagent"
+  category?: string
+  dagNodeId?: string
+  status: "queued" | "running" | "completed" | "error" | "cancelled" | "interrupted"
+  startedAt: number
+  completedAt?: number
+  error?: string
+  progress?: {
+    toolCalls: number
+    lastTool?: string
+    lastToolStatus?: string
+    lastTitle?: string
+    lastPartId?: string
+    lastUpdate: number
+    lastMessage?: string
+    recentTools?: Array<{
+      id: string
+      tool: string
+      status: string
+      title?: string
+      updatedAt: number
+    }>
+  }
+  notifyParentOnComplete?: boolean
+  visibility?: "visible" | "hidden"
+  tools?: {
+    [key: string]: boolean
+  }
+  outputConfig?:
+    | {
+        mode?: "summary"
+      }
+    | {
+        mode: "final_response"
+      }
+    | {
+        mode: "structured"
+        schema: {
+          [key: string]: unknown
+        }
+        maxRepairTurns?: 0 | 1 | 2 | 3
+      }
+  output?:
+    | {
+        mode: "summary"
+        value: string
+      }
+    | {
+        mode: "final_response"
+        value: string
+      }
+    | {
+        mode: "structured"
+        value: unknown
+      }
+  owner?: {
+    pluginId: string
+    pluginGeneration: string
+    scopeId: string
+    correlationId: string
+  }
+  timeoutMs?: number
+  usage?: {
+    inputTokens: number
+    outputTokens: number
+    reasoningTokens: number
+    cacheReadTokens: number
+    cacheWriteTokens: number
+    cost: number
+  }
+}
+
+export type LspStatus = {
+  id: string
+  name: string
+  root: string
+  status: "connected" | "error"
+}
+
+export type VcsInfo = {
+  branch: string
+}
+
+export type ScopeBootstrapFieldError = {
+  code: string
+  message: string
+}
+
+export type ScopeBootstrapResponse = {
+  scopeID: string
+  provider: ProviderListResponse
+  agent: Array<Agent>
+  config: Config
+  path?: ScopeBootstrapPath
+  command?: Array<Command>
+  sessionStatus?: {
+    [key: string]: SessionStatus
+  }
+  sessions?: ScopeBootstrapSessions
+  mcp?: {
+    [key: string]: McpStatus
+  }
+  cortex?: Array<CortexTask>
+  agenda?: Array<AgendaItem>
+  lsp?: Array<LspStatus>
+  vcs?: VcsInfo
+  _errors?: {
+    [key: string]: ScopeBootstrapFieldError
+  }
+}
+
+export type Pty = {
+  id: string
+  title: string
+  command: string
+  args: Array<string>
+  cwd: string
+  status: "running" | "exited"
+  pid: number
+}
+
+export type ConfigInstructionsInfo = {
+  content: string
+  source: "override" | "primary" | "empty"
+  sourceFilename: "AGENTS.override.md" | "AGENTS.md" | null
+  editableFilename: "AGENTS.override.md"
+  hasOverride: boolean
+  maxBytes: number
+}
+
+export type ConfigInstructionsUpdateInput = {
+  content: string
+}
+
+export type ConfigDomainSummary = {
+  id:
+    | "general"
+    | "models"
+    | "providers"
+    | "library"
+    | "mcp"
+    | "plugins"
+    | "agents"
+    | "commands"
+    | "permissions"
+    | "channels"
+    | "holos"
+    | "email"
+    | "runtime"
+    | "github"
+  filename: string
+  label: string
+  path: string
+  ownedKeys: Array<string>
+  mergePolicy: "merge" | "replace-domain" | "append"
+  reloadTargets: Array<string>
+  uiSection: string
+  importable: boolean
+  config?: Config
+}
+
+export type ConfigDomainUpdateInput = {
+  config: Config
+  mode?: "merge" | "replace-domain" | "append"
+}
+
+export type ConfigDomainOpenResponse = {
+  success: true
+  path: string
+}
+
+export type ConfigDomainOpenError = {
+  success: false
+  error: string
+  message: string
+  path?: string
+}
+
+export type ConfigImportScope = "global" | "project"
+
+export type ConfigImportDiagnostic = {
+  severity: "warning" | "info"
+  code: string
+  message: string
+  path?: string
+}
+
+export type ConfigDomainImportChange = {
+  key: string
+  type: "add" | "modify" | "remove"
+  before?: unknown
+  after?: unknown
+  conflict: boolean
+  diagnostics: Array<ConfigImportDiagnostic>
+}
+
+export type ConfigDomainImportDomainPlan = {
+  id:
+    | "general"
+    | "models"
+    | "providers"
+    | "library"
+    | "mcp"
+    | "plugins"
+    | "agents"
+    | "commands"
+    | "permissions"
+    | "channels"
+    | "holos"
+    | "email"
+    | "runtime"
+    | "github"
+  filename: string
+  path: string
+  mode: "merge" | "replace-domain" | "append"
+  revision: string
+  changes: Array<ConfigDomainImportChange>
+}
+
+export type ConfigDomainImportPlan = {
+  scope: ConfigImportScope
+  scopeID: string
+  source: string
+  revision: string
+  domains: Array<ConfigDomainImportDomainPlan>
+  conflicts: Array<ConfigDomainImportChange>
+}
+
+export type ConfigImportProjectScopeRequiredError = {
+  name: "ConfigImportProjectScopeRequiredError"
+  data: {
+    message: string
+  }
+}
+
+export type ConfigImportInvalidConfigError = {
+  name: "ConfigInvalidError"
+  data: {
+    path: string
+    issues?: Array<unknown>
+    message?: string
+  }
+}
+
+export type ConfigImportSourceTooLargeError = {
+  name: "ConfigImportSourceTooLargeError"
+  data: {
+    message: string
+    source: string
+    maxBytes: number
+  }
+}
+
+export type ConfigDomainImportPlanInput = {
+  config: Config
+  only?: Array<
+    | "general"
+    | "models"
+    | "providers"
+    | "library"
+    | "mcp"
+    | "plugins"
+    | "agents"
+    | "commands"
+    | "permissions"
+    | "channels"
+    | "holos"
+    | "email"
+    | "runtime"
+    | "github"
+  >
+  mode?: "merge" | "replace-domain" | "append"
+  scope?: ConfigImportScope
+  source?: string
+}
+
+export type RuntimeReloadTarget =
+  | "config"
+  | "skill"
+  | "provider"
+  | "agent"
+  | "plugin"
+  | "mcp"
+  | "lsp"
+  | "formatter"
+  | "watcher"
+  | "channel"
+  | "holos"
+  | "command"
+  | "tool_registry"
+  | "all"
+
+export type RuntimeReloadFailure = {
+  target: RuntimeReloadTarget
+  message: string
+  code?: string
+  name?: string
+  path?: string
+  phase?: string
+  recoverable?: boolean
+}
+
+export type RuntimeReloadDiagnostic = {
+  target: RuntimeReloadTarget
+  severity: "error" | "warning" | "info"
+  message: string
+  code?: string
+  name?: string
+  path?: string
+  phase?: string
+  source?: string
+}
+
+export type RuntimeReloadResult = {
+  success: boolean
+  requested: Array<RuntimeReloadTarget>
+  executed: Array<RuntimeReloadTarget>
+  cascaded: Array<RuntimeReloadTarget>
+  changedFields: Array<string>
+  restartRequired: Array<string>
+  liveApplied: Array<string>
+  warnings: Array<string>
+  failed: Array<RuntimeReloadTarget>
+  failures: Array<RuntimeReloadFailure>
+  diagnostics: Array<RuntimeReloadDiagnostic>
+}
+
+export type ConfigDomainImportApplyResult = {
+  plan: ConfigDomainImportPlan
+  reload: RuntimeReloadResult
+}
+
+export type ConfigImportRevisionConflictError = {
+  name: "ConfigImportRevisionConflictError"
+  data: {
+    message: string
+    domains: Array<
+      | "general"
+      | "models"
+      | "providers"
+      | "library"
+      | "mcp"
+      | "plugins"
+      | "agents"
+      | "commands"
+      | "permissions"
+      | "channels"
+      | "holos"
+      | "email"
+      | "runtime"
+      | "github"
+    >
+  }
+}
+
+export type ConfigImportLockedError = {
+  name: "ConfigImportLockedError"
+  data: {
+    message: string
+    scope: ConfigImportScope
+  }
+}
+
+export type ConfigDomainImportApplyInput = {
+  config: Config
+  only?: Array<
+    | "general"
+    | "models"
+    | "providers"
+    | "library"
+    | "mcp"
+    | "plugins"
+    | "agents"
+    | "commands"
+    | "permissions"
+    | "channels"
+    | "holos"
+    | "email"
+    | "runtime"
+    | "github"
+  >
+  mode?: "merge" | "replace-domain" | "append"
+  scope?: ConfigImportScope
+  source?: string
+  revision?: string
+  yes?: boolean
+  force?: boolean
+}
+
+export type RuntimeReloadScope = "auto" | "global" | "project"
+
+export type ControlProfileSummary = {
+  id: "guarded" | "autonomous" | "full_access"
+  label: string
+  description: string
+}
+
+export type EffectiveProfileResult = {
+  profileId: string
+  label: string
+  source: "agent" | "config" | "default"
+  configProfile?: string
+  agentProfile?: string
+  agentName?: string
+}
+
+export type SandboxStatus = {
+  platform: string
+  available: boolean
+  backend: string | null
+  supported: boolean
+}
+
+export type SandboxReadinessCheck = {
+  id: string
+  label: string
+  status: "pass" | "warn" | "fail"
+  detail: string
+  recovery?: {
+    action: string
+    label: string
+    command: string
+  }
+}
+
+export type SandboxReadiness = {
+  platform: "macos" | "linux" | "windows" | "unsupported"
+  backend: string | null
+  ready: boolean
+  checks: Array<SandboxReadinessCheck>
+  summary: string
+}
+
+export type ToolIds = Array<string>
+
+export type ToolListItem = {
+  id: string
+  description: string
+  parameters: unknown
+}
+
+export type ToolList = Array<ToolListItem>
+
+export type Path = {
+  home: string
+  state: string
+  config: string
+  worktree: string
+  directory: string
+}
+
+export type Worktree = {
+  id: string
+  name: string
+  branch?: string
+  path: string
+  scopeID: string
+  head?: string
+  baseRef?: string
+  baseRevision?: string
+  resolvedBaseCommit?: string
+  detached?: boolean
+  bare?: boolean
+  isMain?: boolean
+  managed?: boolean
+  stale?: boolean
+  dirty?: boolean
+  diskBytes?: number
+  owner?:
+    | {
+        type: "session"
+        sessionID: string
+      }
+    | {
+        type: "superplan"
+        runID: string
+        nodeID?: string
+        mergeID?: string
+      }
+    | {
+        type: "user"
+      }
+    | {
+        type: "external"
+      }
+  bindings?: Array<string>
+  lifecycle?: "active" | "detached" | "gc_candidate" | "deleted"
+  createdAt?: number
+  updatedAt?: number
+  lastUsedAt?: number
+  setupFailed?: boolean
+  setupError?: string
+}
+
+export type WorktreeCreateInput = {
+  name?: string
+  sessionID?: string
+  baseRef?: "current" | "fresh"
+  baseRevision?: string
+  bind?: boolean
+}
+
 export type WorktreeEnterInput = {
   target: string
   force?: boolean
@@ -4154,34 +4485,11 @@ export type WorktreeRemoveInput = {
   force?: boolean
 }
 
-export type VcsInfo = {
-  branch: string
-}
-
 export type SessionNavResponse = {
   items: Array<SessionNavEntry>
   nextCursor: NavCursor | null
   total: number
 }
-
-export type SessionStatus =
-  | {
-      type: "idle"
-    }
-  | {
-      type: "retry"
-      attempt: number
-      message: string
-      next: number
-    }
-  | {
-      type: "busy"
-      description?: string
-    }
-  | {
-      type: "recovering"
-      description?: string
-    }
 
 export type SessionChildCursor = {
   lastActivityAt: number
@@ -4483,6 +4791,14 @@ export type SessionInputResult =
       item: SessionInboxItem
     }
 
+export type WorktreeUnavailableError = {
+  name: "WorktreeUnavailableError"
+  data: {
+    message: string
+    reason: "missing"
+  }
+}
+
 export type TextPartInput = {
   id?: string
   type: "text"
@@ -4635,6 +4951,48 @@ export type AssistantMessage = {
       read: number
       write: number
     }
+  }
+  contextUsage?: {
+    version: 1
+    modelID: string
+    providerID: string
+    totalInput: number
+    contextLimit?: number
+    usableInputLimit?: number
+    categories: {
+      conversation: {
+        estimatedTokens: number
+        attributedTokens: number
+        items?: number
+      }
+      toolActivity: {
+        estimatedTokens: number
+        attributedTokens: number
+        items?: number
+      }
+      filesReferences: {
+        estimatedTokens: number
+        attributedTokens: number
+        items?: number
+      }
+      instructions: {
+        estimatedTokens: number
+        attributedTokens: number
+        items?: number
+      }
+    }
+    overhead: {
+      attributedTokens: number
+    }
+    estimator: {
+      kind: "model-tokenizer"
+      encoding?: string
+    }
+    reconciliation: {
+      mode: "residual" | "scaled-down"
+      factor: number
+    }
+    capturedAt: number
   }
   finish?: string
   metadata?: {
@@ -4977,6 +5335,30 @@ export type SessionFileRestoreResult = {
   partID?: string
 }
 
+export type SessionVolatileState = {
+  inbox: Array<SessionInboxItem>
+  todo: Array<Todo>
+  dag: Array<DagNode>
+}
+
+export type SessionVolatileError = {
+  code: "SESSION_NOT_FOUND" | "SESSION_ARCHIVED" | "RESOURCE_FAILED"
+  message: string
+}
+
+export type SessionVolatileBatchResponse = {
+  sessions: {
+    [key: string]: SessionVolatileState
+  }
+  errors?: {
+    [key: string]: SessionVolatileError
+  }
+}
+
+export type SessionVolatileBatchInput = {
+  sessionIDs: Array<string>
+}
+
 export type PermissionRequest = {
   id: string
   sessionID: string
@@ -5068,166 +5450,16 @@ export type SessionImportResult = {
   warnings: Array<string>
 }
 
-export type CortexTask = {
-  id: string
-  sessionID: string
-  parentSessionID: string
-  parentMessageID: string
-  description: string
-  prompt: string
-  agent: string
-  model?: {
-    providerID: string
-    modelID: string
-  }
-  executionRole?: "primary" | "delegated_subagent"
-  category?: string
-  dagNodeId?: string
-  status: "queued" | "running" | "completed" | "error" | "cancelled" | "interrupted"
-  startedAt: number
-  completedAt?: number
-  error?: string
-  progress?: {
-    toolCalls: number
-    lastTool?: string
-    lastToolStatus?: string
-    lastTitle?: string
-    lastPartId?: string
-    lastUpdate: number
-    lastMessage?: string
-    recentTools?: Array<{
-      id: string
-      tool: string
-      status: string
-      title?: string
-      updatedAt: number
-    }>
-  }
-  notifyParentOnComplete?: boolean
-  visibility?: "visible" | "hidden"
-  tools?: {
-    [key: string]: boolean
-  }
-  outputConfig?:
-    | {
-        mode?: "summary"
-      }
-    | {
-        mode: "final_response"
-      }
-    | {
-        mode: "structured"
-        schema: {
-          [key: string]: unknown
-        }
-        maxRepairTurns?: 0 | 1 | 2 | 3
-      }
-  output?:
-    | {
-        mode: "summary"
-        value: string
-      }
-    | {
-        mode: "final_response"
-        value: string
-      }
-    | {
-        mode: "structured"
-        value: unknown
-      }
-  owner?: {
-    pluginId: string
-    pluginGeneration: string
-    scopeId: string
-    correlationId: string
-  }
-  timeoutMs?: number
-  usage?: {
-    inputTokens: number
-    outputTokens: number
-    reasoningTokens: number
-    cacheReadTokens: number
-    cacheWriteTokens: number
-    cost: number
-  }
-}
-
 export type CortexConcurrencyStatus = {
   configured: number | null
   environment: number | null
   effective: number
-  recommended: number
-  recommendationReason: "normal" | "memory_pressure" | "critical_memory_pressure"
+  memoryPressureLimit: number | null
+  memoryPressureReason: "normal" | "memory_pressure" | "critical_memory_pressure"
   source: "default" | "config" | "environment"
   perAgentLimit: number
   running: number
   queued: number
-}
-
-export type Command = {
-  name: string
-  description?: string
-  kind?: "prompt" | "action"
-  surfaces?: Array<"web" | "cli" | "channel">
-  promptVisible?: boolean
-  agent?: string
-  model?: string
-  mcp?: boolean
-  source?: "command" | "mcp" | "skill"
-  action?: string
-  template?: string
-  hints: Array<string>
-}
-
-export type ProviderRecommendation = {
-  level: "featured" | "recommended" | "standard"
-  rank?: number
-  headline?: string
-  reason?: string
-  cta?: {
-    kind: "external"
-    label: string
-    url: string
-  }
-  defaultModel?: string
-}
-
-export type ProviderProfileMetadata = {
-  id: string
-  name: string
-  displayName?: string
-  description?: string
-  signupUrl?: string
-  authKind?: string
-  environment?: Array<string>
-  recommendation?: ProviderRecommendation
-}
-
-export type ProviderAuthHealth = {
-  providerID: string
-  status: "connected" | "not_configured" | "exhausted" | "action_required"
-  recovery?: "reconnect" | "update_environment"
-  authKind?: string
-  source?: string
-  updatedAt?: number
-  cooldownUntil?: number
-  resetAt?: number
-  failureCode?: string
-}
-
-export type ProviderRuntimeAvailability = {
-  providerID: string
-  available: boolean
-  reason?:
-    | "connected"
-    | "not_connected"
-    | "disabled"
-    | "no_models"
-    | "authentication_required"
-    | "exhausted"
-    | "fallback_unverified"
-  healthCheck?: "models" | "none"
-  modelCount: number
 }
 
 export type AccountUsageWindow = {
@@ -5933,11 +6165,28 @@ export type BlueprintLoopInfo = {
   /**
    * Owner that created and drives this loop lifecycle
    */
-  source: "user" | "lattice"
+  source: "user" | "lattice" | "plugin"
+  sourceDigest?: string
+  budget?: {
+    maxRuntimeMs: number
+    maxIterations: number
+  }
+  pluginOwner?: {
+    pluginId: string
+    pluginGeneration: string
+    scopeId: string
+    correlationId?: string
+  }
   audit?: {
     lastReason?: string
     lastAuditedAt?: number
     attempts: number
+  }
+  executionTools?: {
+    [key: string]: boolean
+  }
+  auditTools?: {
+    [key: string]: boolean
   }
   time: {
     created: number
@@ -5949,6 +6198,8 @@ export type BlueprintLoopInfo = {
     providerID: string
     modelID: string
   }
+  terminalHookDeliveredAt?: number
+  terminalHookError?: string
 }
 
 export type BlueprintLoopCreateInput = {
@@ -6106,9 +6357,9 @@ export type WorkflowSetInput =
   | {
       kind: "lightloop"
       /**
-       * Task description for Light Loop
+       * Instructions for Light Loop
        */
-      taskDescription: string
+      instructions: string
     }
   | {
       kind: "lattice"
@@ -6129,6 +6380,13 @@ export type WorkflowSetInput =
        */
       action?: "continue" | "restart"
     }
+
+export type LightloopUpdateInput = {
+  /**
+   * Updated instructions for the active Light Loop
+   */
+  instructions: string
+}
 
 export type AssetInfo = {
   id: string
@@ -6566,6 +6824,105 @@ export type PluginStatus = {
   }
 }
 
+export type ApprovalReview = {
+  target:
+    | {
+        kind: "configured"
+        pluginId: string
+      }
+    | {
+        kind: "registry"
+        pluginId: string
+        version: string
+        source: "official" | "local"
+      }
+  pluginId: string
+  name: string
+  version: string
+  apiVersion?: string
+  generation?: string
+  capabilities: Array<string>
+  risk: "low" | "medium" | "high"
+  trust: "declarative" | "trusted-import"
+  diff: {
+    pluginId: string
+    fromVersion?: string
+    toVersion?: string
+    riskBefore?: "low" | "medium" | "high"
+    riskAfter?: "low" | "medium" | "high"
+    added: Array<{
+      key: string
+      category:
+        | "tools"
+        | "files"
+        | "network"
+        | "data"
+        | "ui"
+        | "runtime"
+        | "hooks"
+        | "session"
+        | "browser"
+        | "identity"
+        | "communication"
+        | "platform"
+      severity: "low" | "medium" | "high"
+      title: string
+      description: string
+      technical?: string
+    }>
+    removed: Array<{
+      key: string
+      category:
+        | "tools"
+        | "files"
+        | "network"
+        | "data"
+        | "ui"
+        | "runtime"
+        | "hooks"
+        | "session"
+        | "browser"
+        | "identity"
+        | "communication"
+        | "platform"
+      severity: "low" | "medium" | "high"
+      title: string
+      description: string
+      technical?: string
+    }>
+    unchanged: Array<{
+      key: string
+      category:
+        | "tools"
+        | "files"
+        | "network"
+        | "data"
+        | "ui"
+        | "runtime"
+        | "hooks"
+        | "session"
+        | "browser"
+        | "identity"
+        | "communication"
+        | "platform"
+      severity: "low" | "medium" | "high"
+      title: string
+      description: string
+      technical?: string
+    }>
+    changed: Array<{
+      key: string
+      before?: string
+      after?: string
+    }>
+    requiresApproval: boolean
+    reason?: string
+  }
+  permissionsChanged: boolean
+  reason?: string
+  reviewToken: string
+}
+
 export type PluginRuntimeInfo = {
   key: string
   mode: "process" | "inProcess"
@@ -6725,44 +7082,6 @@ export type RegistryPublishInput = {
   yankedVersions?: Array<string>
 }
 
-export type ExternalAgentInfo = {
-  adapter: string
-  path?: string
-  version?: string
-  config?: {
-    [key: string]: unknown
-  }
-}
-
-export type Agent = {
-  name: string
-  description?: string
-  mode: "subagent" | "primary" | "all"
-  native?: boolean
-  hidden?: boolean
-  visibleTo?: Array<string>
-  delegationGroups?: Array<string>
-  topP?: number
-  temperature?: number
-  color?: string
-  permission: PermissionRuleset
-  controlProfile?: "guarded" | "autonomous" | "full_access"
-  model?: {
-    modelID: string
-    providerID: string
-  }
-  modelRole?: ModelRole
-  modelSource?: "role" | "explicit"
-  source?: "builtin" | "config" | "plugin" | "external"
-  prompt?: string
-  options: {
-    [key: string]: unknown
-  }
-  steps?: number
-  external?: ExternalAgentInfo
-  defaultVariant?: string
-}
-
 export type ModelRoleUsage = {
   name: string
   description?: string
@@ -6826,67 +7145,6 @@ export type ModelRoleSummary = {
   disabledReason?: string
 }
 
-export type McpStatusUninitialized = {
-  status: "uninitialized"
-}
-
-export type McpStatusStarting = {
-  status: "starting"
-}
-
-export type McpStatusConnecting = {
-  status: "connecting"
-}
-
-export type McpStatusListingTools = {
-  status: "listing_tools"
-}
-
-export type McpStatusConnected = {
-  status: "connected"
-}
-
-export type McpStatusReconnecting = {
-  status: "reconnecting"
-  attempt: number
-  maxAttempts: number
-}
-
-export type McpStatusFailed = {
-  status: "failed"
-  error: string
-}
-
-export type McpStatusDisabled = {
-  status: "disabled"
-}
-
-export type McpStatusNeedsAuth = {
-  status: "needs_auth"
-}
-
-export type McpStatusNeedsClientRegistration = {
-  status: "needs_client_registration"
-  error: string
-}
-
-export type McpStatusStopping = {
-  status: "stopping"
-}
-
-export type McpStatus =
-  | McpStatusUninitialized
-  | McpStatusStarting
-  | McpStatusConnecting
-  | McpStatusListingTools
-  | McpStatusConnected
-  | McpStatusReconnecting
-  | McpStatusFailed
-  | McpStatusDisabled
-  | McpStatusNeedsAuth
-  | McpStatusNeedsClientRegistration
-  | McpStatusStopping
-
 export type ChannelStatus =
   | {
       status: "connected"
@@ -6911,13 +7169,6 @@ export type McpResource = {
   description?: string
   mimeType?: string
   client: string
-}
-
-export type LspStatus = {
-  id: string
-  name: string
-  root: string
-  status: "connected" | "error"
 }
 
 export type FormatterStatus = {
@@ -7133,6 +7384,14 @@ export type EventSessionStatus = {
   properties: {
     sessionID: string
     status: SessionStatus
+  }
+}
+
+export type EventSessionCompletion = {
+  type: "session.completion"
+  properties: {
+    sessionID: string
+    unreadCount: number
   }
 }
 
@@ -7396,6 +7655,65 @@ export type EventCortexTasksUpdated = {
   }
 }
 
+export type EventSynergyLinkTargetCreated = {
+  type: "synergy_link.target.created"
+  properties: {
+    target: SynergyLinkTarget
+  }
+}
+
+export type EventSynergyLinkTargetUpdated = {
+  type: "synergy_link.target.updated"
+  properties: {
+    target: SynergyLinkTarget
+  }
+}
+
+export type EventSynergyLinkTargetRemoved = {
+  type: "synergy_link.target.removed"
+  properties: {
+    id: string
+  }
+}
+
+export type EventChannelCommandExecuted = {
+  type: "channel.command.executed"
+  properties: {
+    name: string
+    channelType: string
+    accountId: string
+    chatId: string
+    userId?: string
+  }
+}
+
+export type EventChannelConnected = {
+  type: "channel.connected"
+  properties: {
+    channelType: string
+    accountId: string
+  }
+}
+
+export type EventChannelDisconnected = {
+  type: "channel.disconnected"
+  properties: {
+    channelType: string
+    accountId: string
+    reason?: string
+  }
+}
+
+export type EventChannelMessageReceived = {
+  type: "channel.message.received"
+  properties: {
+    channelType: string
+    accountId: string
+    chatId: string
+    text: string
+  }
+}
+
 export type EventHolosContactAdded = {
   type: "holos.contact.added"
   properties: {
@@ -7437,13 +7755,6 @@ export type EventHolosPresence = {
   properties: {
     peerId: string
     status: "online" | "offline"
-  }
-}
-
-export type EventClarusNavigationUpdated = {
-  type: "clarus.navigation.updated"
-  properties: {
-    timestamp?: number
   }
 }
 
@@ -7522,44 +7833,6 @@ export type EventPtyDeleted = {
   }
 }
 
-export type EventChannelCommandExecuted = {
-  type: "channel.command.executed"
-  properties: {
-    name: string
-    channelType: string
-    accountId: string
-    chatId: string
-    userId?: string
-  }
-}
-
-export type EventChannelConnected = {
-  type: "channel.connected"
-  properties: {
-    channelType: string
-    accountId: string
-  }
-}
-
-export type EventChannelDisconnected = {
-  type: "channel.disconnected"
-  properties: {
-    channelType: string
-    accountId: string
-    reason?: string
-  }
-}
-
-export type EventChannelMessageReceived = {
-  type: "channel.message.received"
-  properties: {
-    channelType: string
-    accountId: string
-    chatId: string
-    text: string
-  }
-}
-
 export type EventServerConnected = {
   type: "server.connected"
   properties: {
@@ -7598,6 +7871,7 @@ export type Event =
   | EventSessionDiff
   | EventSessionError
   | EventSessionStatus
+  | EventSessionCompletion
   | EventSessionIdle
   | EventRuntimeReloaded
   | EventSessionInboxUpdated
@@ -7632,13 +7906,19 @@ export type Event =
   | EventCortexTaskCreated
   | EventCortexTaskCompleted
   | EventCortexTasksUpdated
+  | EventSynergyLinkTargetCreated
+  | EventSynergyLinkTargetUpdated
+  | EventSynergyLinkTargetRemoved
+  | EventChannelCommandExecuted
+  | EventChannelConnected
+  | EventChannelDisconnected
+  | EventChannelMessageReceived
   | EventHolosContactAdded
   | EventHolosContactRemoved
   | EventHolosContactUpdated
   | EventHolosConnected
   | EventHolosConnectionStatusChanged
   | EventHolosPresence
-  | EventClarusNavigationUpdated
   | EventPluginEvent
   | EventCommandExecuted
   | EventFileWatcherUpdated
@@ -7647,10 +7927,6 @@ export type Event =
   | EventPtyUpdated
   | EventPtyExited
   | EventPtyDeleted
-  | EventChannelCommandExecuted
-  | EventChannelConnected
-  | EventChannelDisconnected
-  | EventChannelMessageReceived
   | EventServerConnected
   | EventGlobalDisposed
 
@@ -8426,6 +8702,136 @@ export type HolosReconnectResponses = {
 
 export type HolosReconnectResponse2 = HolosReconnectResponses[keyof HolosReconnectResponses]
 
+export type SynergyLinkTargetsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/synergy-link/targets"
+}
+
+export type SynergyLinkTargetsResponses = {
+  /**
+   * Persisted Synergy Link targets
+   */
+  200: Array<SynergyLinkTargetView>
+}
+
+export type SynergyLinkTargetsResponse = SynergyLinkTargetsResponses[keyof SynergyLinkTargetsResponses]
+
+export type SynergyLinkTargetCreateData = {
+  body?: SynergyLinkTargetCreateInput
+  path?: never
+  query?: never
+  url: "/synergy-link/targets"
+}
+
+export type SynergyLinkTargetCreateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type SynergyLinkTargetCreateError = SynergyLinkTargetCreateErrors[keyof SynergyLinkTargetCreateErrors]
+
+export type SynergyLinkTargetCreateResponses = {
+  /**
+   * Created target
+   */
+  200: SynergyLinkTarget
+}
+
+export type SynergyLinkTargetCreateResponse = SynergyLinkTargetCreateResponses[keyof SynergyLinkTargetCreateResponses]
+
+export type SynergyLinkTargetRemoveData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/synergy-link/targets/{id}"
+}
+
+export type SynergyLinkTargetRemoveErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SynergyLinkTargetRemoveError = SynergyLinkTargetRemoveErrors[keyof SynergyLinkTargetRemoveErrors]
+
+export type SynergyLinkTargetRemoveResponses = {
+  /**
+   * Target removed
+   */
+  200: SynergyLinkTargetRemoveResult
+}
+
+export type SynergyLinkTargetRemoveResponse = SynergyLinkTargetRemoveResponses[keyof SynergyLinkTargetRemoveResponses]
+
+export type SynergyLinkTargetUpdateData = {
+  body?: SynergyLinkTargetPatchInput
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/synergy-link/targets/{id}"
+}
+
+export type SynergyLinkTargetUpdateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SynergyLinkTargetUpdateError = SynergyLinkTargetUpdateErrors[keyof SynergyLinkTargetUpdateErrors]
+
+export type SynergyLinkTargetUpdateResponses = {
+  /**
+   * Updated target
+   */
+  200: SynergyLinkTarget
+}
+
+export type SynergyLinkTargetUpdateResponse = SynergyLinkTargetUpdateResponses[keyof SynergyLinkTargetUpdateResponses]
+
+export type SynergyLinkTargetProbeData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/synergy-link/targets/{id}/probe"
+}
+
+export type SynergyLinkTargetProbeErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SynergyLinkTargetProbeError = SynergyLinkTargetProbeErrors[keyof SynergyLinkTargetProbeErrors]
+
+export type SynergyLinkTargetProbeResponses = {
+  /**
+   * Observed target
+   */
+  200: SynergyLinkTargetView
+}
+
+export type SynergyLinkTargetProbeResponse = SynergyLinkTargetProbeResponses[keyof SynergyLinkTargetProbeResponses]
+
 export type GlobalAgendaListData = {
   body?: never
   path?: never
@@ -8549,6 +8955,7 @@ export type GlobalNavRecentData = {
   query?: {
     parentOnly?: boolean
     includeArchived?: boolean
+    category?: "project" | "home" | "channel" | "background" | "github"
     search?: string
     limit?: number
     cursorLastActivityAt?: number
@@ -8584,468 +8991,21 @@ export type GlobalNavPinnedResponses = {
 
 export type GlobalNavPinnedResponse = GlobalNavPinnedResponses[keyof GlobalNavPinnedResponses]
 
-export type GlobalClarusStatusData = {
+export type GithubConfiguredData = {
   body?: never
   path?: never
   query?: never
-  url: "/global/clarus/status"
+  url: "/github/configured"
 }
 
-export type GlobalClarusStatusResponses = {
+export type GithubConfiguredResponses = {
   /**
-   * Clarus status
+   * GitHub App configuration status
    */
-  200: ClarusStatusResponse
+  200: GitHubConfiguredResponse
 }
 
-export type GlobalClarusStatusResponse = GlobalClarusStatusResponses[keyof GlobalClarusStatusResponses]
-
-export type GlobalClarusReconnectData = {
-  body?: never
-  path?: never
-  query?: never
-  url: "/global/clarus/reconnect"
-}
-
-export type GlobalClarusReconnectResponses = {
-  /**
-   * Full Clarus status after reconnect attempt
-   */
-  200: ClarusReconnectResponse
-}
-
-export type GlobalClarusReconnectResponse = GlobalClarusReconnectResponses[keyof GlobalClarusReconnectResponses]
-
-export type GlobalClarusProjectsListData = {
-  body?: never
-  path?: never
-  query?: {
-    cursor?: string
-    limit?: number
-  }
-  url: "/global/clarus/projects"
-}
-
-export type GlobalClarusProjectsListErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-}
-
-export type GlobalClarusProjectsListError = GlobalClarusProjectsListErrors[keyof GlobalClarusProjectsListErrors]
-
-export type GlobalClarusProjectsListResponses = {
-  /**
-   * Bounded project bindings
-   */
-  200: ClarusProjectBindingListResponse
-}
-
-export type GlobalClarusProjectsListResponse =
-  GlobalClarusProjectsListResponses[keyof GlobalClarusProjectsListResponses]
-
-export type GlobalClarusProjectsCreateData = {
-  body?: ClarusProjectBindingCreateInput
-  path?: never
-  query?: never
-  url: "/global/clarus/projects"
-}
-
-export type GlobalClarusProjectsCreateErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-}
-
-export type GlobalClarusProjectsCreateError = GlobalClarusProjectsCreateErrors[keyof GlobalClarusProjectsCreateErrors]
-
-export type GlobalClarusProjectsCreateResponses = {
-  /**
-   * Created or activated project binding
-   */
-  200: ClarusProjectBindingItem
-}
-
-export type GlobalClarusProjectsCreateResponse =
-  GlobalClarusProjectsCreateResponses[keyof GlobalClarusProjectsCreateResponses]
-
-export type GlobalClarusProjectsGetData = {
-  body?: never
-  path: {
-    projectId: string
-  }
-  query?: never
-  url: "/global/clarus/projects/{projectId}"
-}
-
-export type GlobalClarusProjectsGetErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-  /**
-   * Clarus not found error
-   */
-  404: ClarusErrorDetail
-}
-
-export type GlobalClarusProjectsGetError = GlobalClarusProjectsGetErrors[keyof GlobalClarusProjectsGetErrors]
-
-export type GlobalClarusProjectsGetResponses = {
-  /**
-   * Project binding
-   */
-  200: ClarusProjectBindingItem
-}
-
-export type GlobalClarusProjectsGetResponse = GlobalClarusProjectsGetResponses[keyof GlobalClarusProjectsGetResponses]
-
-export type GlobalClarusProjectsUpdateData = {
-  body?: ClarusProjectBindingUpdateInput
-  path: {
-    projectId: string
-  }
-  query?: never
-  url: "/global/clarus/projects/{projectId}"
-}
-
-export type GlobalClarusProjectsUpdateErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-  /**
-   * Clarus not found error
-   */
-  404: ClarusErrorDetail
-}
-
-export type GlobalClarusProjectsUpdateError = GlobalClarusProjectsUpdateErrors[keyof GlobalClarusProjectsUpdateErrors]
-
-export type GlobalClarusProjectsUpdateResponses = {
-  /**
-   * Updated project binding
-   */
-  200: ClarusProjectBindingItem
-}
-
-export type GlobalClarusProjectsUpdateResponse =
-  GlobalClarusProjectsUpdateResponses[keyof GlobalClarusProjectsUpdateResponses]
-
-export type GlobalClarusProjectsDeactivateData = {
-  body?: never
-  path: {
-    projectId: string
-  }
-  query?: never
-  url: "/global/clarus/projects/{projectId}/deactivate"
-}
-
-export type GlobalClarusProjectsDeactivateErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-}
-
-export type GlobalClarusProjectsDeactivateError =
-  GlobalClarusProjectsDeactivateErrors[keyof GlobalClarusProjectsDeactivateErrors]
-
-export type GlobalClarusProjectsDeactivateResponses = {
-  /**
-   * Deactivated project binding
-   */
-  200: ClarusProjectBindingItem
-}
-
-export type GlobalClarusProjectsDeactivateResponse =
-  GlobalClarusProjectsDeactivateResponses[keyof GlobalClarusProjectsDeactivateResponses]
-
-export type GlobalClarusProjectsActivityData = {
-  body?: never
-  path: {
-    projectId: string
-  }
-  query?: {
-    cursor?: string
-    limit?: number
-  }
-  url: "/global/clarus/projects/{projectId}/activity"
-}
-
-export type GlobalClarusProjectsActivityErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-  /**
-   * Clarus not found error
-   */
-  404: ClarusErrorDetail
-}
-
-export type GlobalClarusProjectsActivityError =
-  GlobalClarusProjectsActivityErrors[keyof GlobalClarusProjectsActivityErrors]
-
-export type GlobalClarusProjectsActivityResponses = {
-  /**
-   * Paginated project activity
-   */
-  200: ClarusProjectActivityResponse
-}
-
-export type GlobalClarusProjectsActivityResponse =
-  GlobalClarusProjectsActivityResponses[keyof GlobalClarusProjectsActivityResponses]
-
-export type GlobalClarusTasksListData = {
-  body?: never
-  path?: never
-  query: {
-    projectId: string
-    cursor?: string
-    limit?: number
-  }
-  url: "/global/clarus/tasks"
-}
-
-export type GlobalClarusTasksListErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-}
-
-export type GlobalClarusTasksListError = GlobalClarusTasksListErrors[keyof GlobalClarusTasksListErrors]
-
-export type GlobalClarusTasksListResponses = {
-  /**
-   * Task bindings
-   */
-  200: ClarusTaskBindingListResponse
-}
-
-export type GlobalClarusTasksListResponse = GlobalClarusTasksListResponses[keyof GlobalClarusTasksListResponses]
-
-export type GlobalClarusTasksGetData = {
-  body?: never
-  path: {
-    taskId: string
-  }
-  query: {
-    projectId: string
-  }
-  url: "/global/clarus/tasks/{taskId}"
-}
-
-export type GlobalClarusTasksGetErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-  /**
-   * Clarus not found error
-   */
-  404: ClarusErrorDetail
-}
-
-export type GlobalClarusTasksGetError = GlobalClarusTasksGetErrors[keyof GlobalClarusTasksGetErrors]
-
-export type GlobalClarusTasksGetResponses = {
-  /**
-   * Task binding
-   */
-  200: ClarusTaskBindingItem
-}
-
-export type GlobalClarusTasksGetResponse = GlobalClarusTasksGetResponses[keyof GlobalClarusTasksGetResponses]
-
-export type GlobalClarusComposerLookupUsersData = {
-  body?: never
-  path?: never
-  query?: {
-    search?: string
-    limit?: number
-  }
-  url: "/global/clarus/composer/users"
-}
-
-export type GlobalClarusComposerLookupUsersErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-}
-
-export type GlobalClarusComposerLookupUsersError =
-  GlobalClarusComposerLookupUsersErrors[keyof GlobalClarusComposerLookupUsersErrors]
-
-export type GlobalClarusComposerLookupUsersResponses = {
-  /**
-   * Matching user candidates
-   */
-  200: Array<ClarusComposerUserItem>
-}
-
-export type GlobalClarusComposerLookupUsersResponse =
-  GlobalClarusComposerLookupUsersResponses[keyof GlobalClarusComposerLookupUsersResponses]
-
-export type GlobalClarusComposerLookupProjectsData = {
-  body?: never
-  path?: never
-  query?: {
-    search?: string
-    limit?: number
-  }
-  url: "/global/clarus/composer/projects"
-}
-
-export type GlobalClarusComposerLookupProjectsErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-}
-
-export type GlobalClarusComposerLookupProjectsError =
-  GlobalClarusComposerLookupProjectsErrors[keyof GlobalClarusComposerLookupProjectsErrors]
-
-export type GlobalClarusComposerLookupProjectsResponses = {
-  /**
-   * Matching project candidates
-   */
-  200: Array<ClarusComposerProjectItem>
-}
-
-export type GlobalClarusComposerLookupProjectsResponse =
-  GlobalClarusComposerLookupProjectsResponses[keyof GlobalClarusComposerLookupProjectsResponses]
-
-export type GlobalClarusComposerSubmitData = {
-  body?: ClarusComposerSubmitInput
-  path?: never
-  query?: never
-  url: "/global/clarus/composer/submit"
-}
-
-export type GlobalClarusComposerSubmitErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-  /**
-   * Clarus not found error
-   */
-  404: ClarusErrorDetail
-  /**
-   * Clarus conflict error
-   */
-  409: ClarusErrorDetail
-  /**
-   * Clarus ambiguous or server error
-   */
-  500: ClarusErrorDetail
-}
-
-export type GlobalClarusComposerSubmitError = GlobalClarusComposerSubmitErrors[keyof GlobalClarusComposerSubmitErrors]
-
-export type GlobalClarusComposerSubmitResponses = {
-  /**
-   * Submission result with reconciliation identifiers
-   */
-  200: ClarusComposerSubmitResponse
-}
-
-export type GlobalClarusComposerSubmitResponse =
-  GlobalClarusComposerSubmitResponses[keyof GlobalClarusComposerSubmitResponses]
-
-export type GlobalClarusNavigationData = {
-  body?: never
-  path?: never
-  query?: never
-  url: "/global/clarus/navigation"
-}
-
-export type GlobalClarusNavigationResponses = {
-  /**
-   * Bounded navigation snapshot
-   */
-  200: ClarusNavigationResponse
-}
-
-export type GlobalClarusNavigationResponse = GlobalClarusNavigationResponses[keyof GlobalClarusNavigationResponses]
-
-export type GlobalClarusProjectsTaskDetailData = {
-  body?: never
-  path: {
-    projectId: string
-    taskId: string
-  }
-  query?: never
-  url: "/global/clarus/projects/{projectId}/tasks/{taskId}"
-}
-
-export type GlobalClarusProjectsTaskDetailErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-  /**
-   * Clarus not found error
-   */
-  404: ClarusErrorDetail
-}
-
-export type GlobalClarusProjectsTaskDetailError =
-  GlobalClarusProjectsTaskDetailErrors[keyof GlobalClarusProjectsTaskDetailErrors]
-
-export type GlobalClarusProjectsTaskDetailResponses = {
-  /**
-   * Safe bounded task detail
-   */
-  200: {
-    [key: string]: unknown
-  }
-}
-
-export type GlobalClarusProjectsTaskDetailResponse =
-  GlobalClarusProjectsTaskDetailResponses[keyof GlobalClarusProjectsTaskDetailResponses]
-
-export type GlobalClarusProjectsContinueLocalData = {
-  body?: never
-  path: {
-    projectId: string
-    taskId: string
-  }
-  query?: never
-  url: "/global/clarus/projects/{projectId}/tasks/{taskId}/continue-local"
-}
-
-export type GlobalClarusProjectsContinueLocalErrors = {
-  /**
-   * Clarus error
-   */
-  400: ClarusErrorDetail
-  /**
-   * Clarus not found error
-   */
-  404: ClarusErrorDetail
-}
-
-export type GlobalClarusProjectsContinueLocalError =
-  GlobalClarusProjectsContinueLocalErrors[keyof GlobalClarusProjectsContinueLocalErrors]
-
-export type GlobalClarusProjectsContinueLocalResponses = {
-  /**
-   * Local continuation enabled
-   */
-  200: {
-    [key: string]: unknown
-  }
-}
-
-export type GlobalClarusProjectsContinueLocalResponse =
-  GlobalClarusProjectsContinueLocalResponses[keyof GlobalClarusProjectsContinueLocalResponses]
+export type GithubConfiguredResponse = GithubConfiguredResponses[keyof GithubConfiguredResponses]
 
 export type AgendaWebhookData = {
   body?: never
@@ -9200,6 +9160,38 @@ export type ScopeUpdateResponses = {
 }
 
 export type ScopeUpdateResponse = ScopeUpdateResponses[keyof ScopeUpdateResponses]
+
+export type ScopeBootstrapData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    scopeID?: string
+  }
+  url: "/scope/bootstrap"
+}
+
+export type ScopeBootstrapErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type ScopeBootstrapError = ScopeBootstrapErrors[keyof ScopeBootstrapErrors]
+
+export type ScopeBootstrapResponses = {
+  /**
+   * Scope bootstrap snapshot
+   */
+  200: ScopeBootstrapResponse
+}
+
+export type ScopeBootstrapResponse2 = ScopeBootstrapResponses[keyof ScopeBootstrapResponses]
 
 export type PtyListData = {
   body?: never
@@ -9551,9 +9543,9 @@ export type ConfigDomainGetData = {
       | "permissions"
       | "channels"
       | "holos"
-      | "clarus"
       | "email"
       | "runtime"
+      | "github"
   }
   query?: {
     directory?: string
@@ -9595,9 +9587,9 @@ export type ConfigDomainUpdateData = {
       | "permissions"
       | "channels"
       | "holos"
-      | "clarus"
       | "email"
       | "runtime"
+      | "github"
   }
   query?: {
     directory?: string
@@ -9639,9 +9631,9 @@ export type ConfigDomainOpenData = {
       | "permissions"
       | "channels"
       | "holos"
-      | "clarus"
       | "email"
       | "runtime"
+      | "github"
   }
   query?: {
     directory?: string
@@ -10154,7 +10146,7 @@ export type SessionIndexData = {
   query?: {
     directory?: string
     scopeID?: string
-    category?: "project" | "home" | "channel" | "background" | "clarus"
+    category?: "project" | "home" | "channel" | "background" | "github"
     parentOnly?: "true" | "false"
     includeArchived?: "true" | "false"
     limit?: number
@@ -10753,6 +10745,10 @@ export type SessionInputErrors = {
    * Not found
    */
   404: NotFoundError
+  /**
+   * Session worktree unavailable
+   */
+  409: WorktreeUnavailableError
 }
 
 export type SessionInputError = SessionInputErrors[keyof SessionInputErrors]
@@ -11481,6 +11477,34 @@ export type SessionFilesRestoreResponses = {
 
 export type SessionFilesRestoreResponse = SessionFilesRestoreResponses[keyof SessionFilesRestoreResponses]
 
+export type SessionVolatileBatchData = {
+  body?: SessionVolatileBatchInput
+  path?: never
+  query?: {
+    directory?: string
+    scopeID?: string
+  }
+  url: "/session/batch/volatile"
+}
+
+export type SessionVolatileBatchErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type SessionVolatileBatchError = SessionVolatileBatchErrors[keyof SessionVolatileBatchErrors]
+
+export type SessionVolatileBatchResponses = {
+  /**
+   * Session volatile state by session ID
+   */
+  200: SessionVolatileBatchResponse
+}
+
+export type SessionVolatileBatchResponse2 = SessionVolatileBatchResponses[keyof SessionVolatileBatchResponses]
+
 export type PermissionRespondData = {
   body?: {
     response: "once" | "session" | "always" | "reject"
@@ -11970,27 +11994,10 @@ export type ProviderListResponses = {
   /**
    * List of providers
    */
-  200: {
-    all: Array<Provider>
-    default: {
-      [key: string]: string
-    }
-    connected: Array<string>
-    configProviders: Array<string>
-    catalogProviders: Array<string>
-    profiles: {
-      [key: string]: ProviderProfileMetadata
-    }
-    authHealth: {
-      [key: string]: ProviderAuthHealth
-    }
-    runtimeAvailability: {
-      [key: string]: ProviderRuntimeAvailability
-    }
-  }
+  200: ProviderListResponse
 }
 
-export type ProviderListResponse = ProviderListResponses[keyof ProviderListResponses]
+export type ProviderListResponse2 = ProviderListResponses[keyof ProviderListResponses]
 
 export type ProviderUsageListData = {
   body?: never
@@ -14575,6 +14582,84 @@ export type WorkflowSessionSetResponses = {
 
 export type WorkflowSessionSetResponse = WorkflowSessionSetResponses[keyof WorkflowSessionSetResponses]
 
+export type WorkflowSessionUpdateLightloopData = {
+  body?: LightloopUpdateInput
+  path: {
+    /**
+     * Session ID
+     */
+    id: string
+  }
+  query?: {
+    directory?: string
+    scopeID?: string
+  }
+  url: "/workflow/session/{id}/lightloop"
+}
+
+export type WorkflowSessionUpdateLightloopErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type WorkflowSessionUpdateLightloopError =
+  WorkflowSessionUpdateLightloopErrors[keyof WorkflowSessionUpdateLightloopErrors]
+
+export type WorkflowSessionUpdateLightloopResponses = {
+  /**
+   * Updated session
+   */
+  200: Session
+}
+
+export type WorkflowSessionUpdateLightloopResponse =
+  WorkflowSessionUpdateLightloopResponses[keyof WorkflowSessionUpdateLightloopResponses]
+
+export type WorkflowSessionCancelLightloopData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    id: string
+  }
+  query?: {
+    directory?: string
+    scopeID?: string
+  }
+  url: "/workflow/session/{id}/lightloop/cancel"
+}
+
+export type WorkflowSessionCancelLightloopErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type WorkflowSessionCancelLightloopError =
+  WorkflowSessionCancelLightloopErrors[keyof WorkflowSessionCancelLightloopErrors]
+
+export type WorkflowSessionCancelLightloopResponses = {
+  /**
+   * Updated session
+   */
+  200: Session
+}
+
+export type WorkflowSessionCancelLightloopResponse =
+  WorkflowSessionCancelLightloopResponses[keyof WorkflowSessionCancelLightloopResponses]
+
 export type AssetUploadData = {
   body?: {
     file: unknown
@@ -15688,29 +15773,7 @@ export type ApiPluginsGetResponses = {
   200: unknown
 }
 
-export type ApiPluginsApproveInstallData = {
-  body?: {
-    pluginId: string
-    manifest: unknown
-    capabilities: Array<string>
-    source: "local" | "official" | "npm" | "git" | "url" | "builtin"
-  }
-  path?: never
-  query?: {
-    directory?: string
-    scopeID?: string
-  }
-  url: "/api/plugins/approve-install"
-}
-
-export type ApiPluginsApproveInstallResponses = {
-  /**
-   * Approved
-   */
-  200: unknown
-}
-
-export type ApiPluginsGetApprovalData = {
+export type ApiPluginsGetApprovalReviewData = {
   body?: never
   path: {
     pluginId: string
@@ -15719,24 +15782,108 @@ export type ApiPluginsGetApprovalData = {
     directory?: string
     scopeID?: string
   }
-  url: "/api/plugins/{pluginId}/approval"
+  url: "/api/plugins/{pluginId}/approval-review"
 }
 
-export type ApiPluginsGetApprovalErrors = {
+export type ApiPluginsGetApprovalReviewErrors = {
   /**
-   * Not found
+   * Plugin not found
    */
-  404: NotFoundError
-}
-
-export type ApiPluginsGetApprovalError = ApiPluginsGetApprovalErrors[keyof ApiPluginsGetApprovalErrors]
-
-export type ApiPluginsGetApprovalResponses = {
+  404: {
+    code: string
+    message: string
+  }
   /**
-   * Approval
+   * Approval not required
    */
-  200: unknown
+  409: {
+    code: string
+    message: string
+  }
+  /**
+   * Invalid plugin
+   */
+  422: {
+    code: string
+    message: string
+  }
 }
+
+export type ApiPluginsGetApprovalReviewError =
+  ApiPluginsGetApprovalReviewErrors[keyof ApiPluginsGetApprovalReviewErrors]
+
+export type ApiPluginsGetApprovalReviewResponses = {
+  /**
+   * Approval review
+   */
+  200: ApprovalReview
+}
+
+export type ApiPluginsGetApprovalReviewResponse =
+  ApiPluginsGetApprovalReviewResponses[keyof ApiPluginsGetApprovalReviewResponses]
+
+export type ApiPluginsApproveData = {
+  body?: {
+    target:
+      | {
+          kind: "configured"
+          pluginId: string
+        }
+      | {
+          kind: "registry"
+          pluginId: string
+          version: string
+          source: "official" | "local"
+        }
+    reviewToken: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    scopeID?: string
+  }
+  url: "/api/plugins/approve"
+}
+
+export type ApiPluginsApproveErrors = {
+  /**
+   * Bad request
+   */
+  400: unknown
+  /**
+   * Plugin not found
+   */
+  404: {
+    code: string
+    message: string
+  }
+  /**
+   * Stale review
+   */
+  409: {
+    code: string
+    message: string
+    review: ApprovalReview
+  }
+  /**
+   * Invalid plugin
+   */
+  422: {
+    code: string
+    message: string
+  }
+}
+
+export type ApiPluginsApproveError = ApiPluginsApproveErrors[keyof ApiPluginsApproveErrors]
+
+export type ApiPluginsApproveResponses = {
+  /**
+   * Approved
+   */
+  200: PluginStatus
+}
+
+export type ApiPluginsApproveResponse = ApiPluginsApproveResponses[keyof ApiPluginsApproveResponses]
 
 export type ApiPluginsInstallFromRegistryData = {
   body?: {
@@ -15756,8 +15903,22 @@ export type ApiPluginsInstallFromRegistryErrors = {
   /**
    * Approval required
    */
-  409: unknown
+  409: {
+    code: string
+    message: string
+    review: ApprovalReview
+  }
+  /**
+   * Invalid
+   */
+  422: {
+    code: string
+    message: string
+  }
 }
+
+export type ApiPluginsInstallFromRegistryError =
+  ApiPluginsInstallFromRegistryErrors[keyof ApiPluginsInstallFromRegistryErrors]
 
 export type ApiPluginsInstallFromRegistryResponses = {
   /**
@@ -15784,8 +15945,22 @@ export type ApiPluginsUpdateFromRegistryErrors = {
   /**
    * Approval required
    */
-  409: unknown
+  409: {
+    code: string
+    message: string
+    review: ApprovalReview
+  }
+  /**
+   * Invalid
+   */
+  422: {
+    code: string
+    message: string
+  }
 }
+
+export type ApiPluginsUpdateFromRegistryError =
+  ApiPluginsUpdateFromRegistryErrors[keyof ApiPluginsUpdateFromRegistryErrors]
 
 export type ApiPluginsUpdateFromRegistryResponses = {
   /**

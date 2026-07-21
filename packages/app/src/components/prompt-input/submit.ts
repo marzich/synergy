@@ -36,7 +36,7 @@ import { createUploadedAttachmentInputPart } from "./attachment-submit"
 import { createPromptDraftSnapshot, createSubmitFailureRestoreSnapshot } from "@/utils/prompt"
 import { sendSessionCommand } from "./session-command"
 import type { BlueprintSlot, PromptInputMode, PromptInputProps, PromptInputStore } from "./types"
-import { buildLightLoopTaskDescription } from "./light-loop-task"
+import { buildLightLoopInstructions } from "./light-loop-instructions"
 import { getPendingLightLoopSlashBlock, resolveSlashCommandIntent, type SlashUiCommand } from "./slash-command-intent"
 import { resolvePromptSubmitIntent } from "./submit-intent"
 import { acquireNewSessionSubmitLock } from "./new-session-submit-lock"
@@ -58,6 +58,9 @@ import { createNewSessionRecoveryActions, type NewSessionRecovery } from "@/comp
 import { useLocale } from "@/context/locale"
 import { translateDescriptor } from "@/locales/translate"
 import { PI } from "./prompt-input-i18n"
+import { reconcileMessage, removeMessageFromWindow, type MessageWindowState } from "@/context/session-message-window"
+import { nextMessageWindowTotal, nextMessageWindowTotalAfterRemoval } from "@/context/session-message-total"
+import { promptSubmitFailure } from "./submit-failure"
 
 type PromptSubmitInput = {
   props: Pick<
@@ -91,6 +94,7 @@ type PromptSubmitInput = {
   abort: () => void
   editor: () => HTMLDivElement
   queueScroll: () => void
+  onWorktreeUnavailable: () => void
 }
 
 export function usePromptSubmit(input: PromptSubmitInput) {
@@ -258,18 +262,20 @@ export function usePromptSubmit(input: PromptSubmitInput) {
     const armedLattice = isNewSession ? input.pendingLattice() : null
     if (armedLattice) input.clearPendingLattice()
     const armedLightLoop = input.pendingLightLoop()
-    const fileAttachmentsForTask = currentPrompt.filter((part): part is FileAttachmentPart => part.type === "file")
-    const armedLightLoopTaskDescription = armedLightLoop
-      ? buildLightLoopTaskDescription({
+    const fileAttachmentsForInstructions = currentPrompt.filter(
+      (part): part is FileAttachmentPart => part.type === "file",
+    )
+    const armedLightLoopInstructions = armedLightLoop
+      ? buildLightLoopInstructions({
           text,
           uploads: attachments,
           notes,
           sessions,
-          fileAttachments: fileAttachmentsForTask,
+          fileAttachments: fileAttachmentsForInstructions,
           contextItems: currentContext.items,
         })
       : undefined
-    if (armedLightLoop && !armedLightLoopTaskDescription && !blueprintSlot) {
+    if (armedLightLoop && !armedLightLoopInstructions && !blueprintSlot) {
       showToast({
         type: "warning",
         title: i18n._(PI.submitLightLoopTitle),
@@ -523,7 +529,7 @@ export function usePromptSubmit(input: PromptSubmitInput) {
       session = await client.workflow.session
         .set({
           id: sessionID,
-          workflowSetInput: { kind: "lightloop", taskDescription: armedLightLoopTaskDescription! },
+          workflowSetInput: { kind: "lightloop", instructions: armedLightLoopInstructions! },
         })
         .then((x) => {
           enabledLightLoopForSubmit = { sessionID }
@@ -553,10 +559,10 @@ export function usePromptSubmit(input: PromptSubmitInput) {
       input.setLocalArmedLoop(null)
     }
 
-    const failActiveSessionSubmit = (title: string, message: string) => {
+    const failActiveSessionSubmit = (title: string, message: string, options?: { focus?: boolean }) => {
       const persisted = persistCreatedSessionFailure(activeSession.id, title, message)
       releaseNewSessionSubmit()
-      if (!persisted) restoreInput()
+      if (!persisted) restoreInput(options)
     }
 
     const rollbackLightLoopForSubmit = async () => {
@@ -860,38 +866,75 @@ export function usePromptSubmit(input: PromptSubmitInput) {
         }
       : undefined
 
-    const setSyncStore =
-      sessionScopeKey === currentScopeKey ? sync.set : globalSync.ensureScopeState(sessionScopeKey)[1]
+    const [syncStore, setSyncStore] =
+      sessionScopeKey === currentScopeKey ? [sync.data, sync.set] : globalSync.ensureScopeState(sessionScopeKey)
 
     const addOptimisticMessage = () => {
       if (!messageID || !optimisticMessage) return
+      const metadata = syncStore.messageWindow[activeSession.id]
+      const current: MessageWindowState<Message> = {
+        messages: syncStore.message[activeSession.id] ?? [],
+        mode: metadata?.mode ?? "latest",
+        pendingLatest: metadata?.pendingLatest ?? false,
+        pendingLatestIds: metadata?.pendingLatestIds ?? [],
+      }
+      const existing = current.messages.some((message) => message.id === messageID)
+      const result = reconcileMessage(current, optimisticMessage)
+      const visible = result.window.messages.some((message) => message.id === messageID)
+      globalSync.invalidateResource(sessionScopeKey, activeSession.id, "message")
       setSyncStore(
         produce((draft) => {
-          const messages = draft.message[activeSession.id]
-          if (!messages) {
-            draft.message[activeSession.id] = [optimisticMessage]
-          } else {
-            const result = Binary.search(messages, messageID, (m) => m.id)
-            messages.splice(result.index, 0, optimisticMessage)
+          for (const droppedID of result.droppedIds) delete draft.part[droppedID]
+          draft.message[activeSession.id] = result.window.messages
+          draft.messageWindow[activeSession.id] = {
+            nextCursor: metadata?.nextCursor ?? null,
+            hasMore: metadata?.hasMore ?? false,
+            total: nextMessageWindowTotal({
+              total: metadata?.total ?? current.messages.length,
+              existing,
+              visible,
+            }),
+            mode: result.window.mode,
+            pendingLatest: result.window.pendingLatest,
+            pendingLatestIds: result.window.pendingLatestIds,
           }
-          draft.part[messageID] = optimisticParts
-            .filter((p) => !!p?.id)
-            .slice()
-            .sort((a, b) => a.id.localeCompare(b.id))
+          if (visible) {
+            draft.part[messageID] = optimisticParts
+              .filter((part) => !!part?.id)
+              .slice()
+              .sort((a, b) => a.id.localeCompare(b.id))
+          }
         }),
       )
     }
 
     const removeOptimisticMessage = () => {
       if (!messageID) return
+      const messages = syncStore.message[activeSession.id]
+      if (!messages) return
+      const metadata = syncStore.messageWindow[activeSession.id]
+      const current: MessageWindowState<Message> = {
+        messages,
+        mode: metadata?.mode ?? "latest",
+        pendingLatest: metadata?.pendingLatest ?? false,
+        pendingLatestIds: metadata?.pendingLatestIds ?? [],
+      }
+      const pending = current.pendingLatestIds.includes(messageID)
+      const result = removeMessageFromWindow(current, messageID)
+      const removed = result.messages.length !== messages.length
+      globalSync.invalidateResource(sessionScopeKey, activeSession.id, "message")
       setSyncStore(
         produce((draft) => {
-          const messages = draft.message[activeSession.id]
-          if (messages) {
-            const result = Binary.search(messages, messageID, (m) => m.id)
-            if (result.found) messages.splice(result.index, 1)
-          }
+          draft.message[activeSession.id] = result.messages
           delete draft.part[messageID]
+          if (metadata) {
+            draft.messageWindow[activeSession.id] = {
+              ...metadata,
+              total: removed ? nextMessageWindowTotalAfterRemoval({ total: metadata.total, pending }) : metadata.total,
+              pendingLatest: result.pendingLatest,
+              pendingLatestIds: result.pendingLatestIds,
+            }
+          }
         }),
       )
     }
@@ -932,15 +975,22 @@ export function usePromptSubmit(input: PromptSubmitInput) {
         }
       })
       .catch(async (err) => {
-        const message = errorMessage(err)
+        const failure = promptSubmitFailure(err)
         await rollbackLightLoopForSubmit()
+        if (optimisticAdded) removeOptimisticMessage()
+        const worktreeUnavailable = failure.kind === "worktree-unavailable"
+        failActiveSessionSubmit(i18n._(PI.submitFailedSend), failure.message, {
+          focus: !worktreeUnavailable,
+        })
+        if (worktreeUnavailable) {
+          input.onWorktreeUnavailable()
+          return
+        }
         showToast({
           type: "error",
           title: i18n._(PI.submitFailedSend),
-          description: sessionStartFailureMessage(message),
+          description: sessionStartFailureMessage(failure.message),
         })
-        if (optimisticAdded) removeOptimisticMessage()
-        failActiveSessionSubmit(i18n._(PI.submitFailedSend), message)
       })
   }
 }

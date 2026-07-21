@@ -882,24 +882,6 @@
         "model": {
           "description": "Embedding model name",
           "type": "string"
-        },
-        "local": {
-          "description": "Bundled local embedding model download settings",
-          "ref": "LocalEmbeddingConfig",
-          "type": "object",
-          "properties": {
-            "source": {
-              "description": "Download source for the bundled local embedding model (default: huggingface)",
-              "type": "string",
-              "enum": ["huggingface", "hf-mirror", "custom"]
-            },
-            "remoteHost": {
-              "description": "Public HTTPS origin used when source is custom",
-              "type": "string",
-              "format": "uri"
-            }
-          },
-          "additionalProperties": false
         }
       },
       "additionalProperties": false

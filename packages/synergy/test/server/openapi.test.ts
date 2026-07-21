@@ -13,9 +13,11 @@ describe("OpenAPI spec generation", () => {
     expect(Object.keys(spec.paths).length).toBeGreaterThan(0)
     const providerResponse = spec.paths["/provider"]?.get as Record<string, any>
     const responseSchema = providerResponse.responses["200"].content["application/json"].schema
+    const providerListSchema = spec.components?.schemas?.ProviderListResponse as Record<string, any>
     const providerSchema = spec.components?.schemas?.Provider
     const modelSchema = spec.components?.schemas?.Model
-    expect(responseSchema.properties.all.items).toEqual({ $ref: "#/components/schemas/Provider" })
+    expect(responseSchema).toEqual({ $ref: "#/components/schemas/ProviderListResponse" })
+    expect(providerListSchema.properties.all.items).toEqual({ $ref: "#/components/schemas/Provider" })
     expect(JSON.stringify(providerSchema)).toContain("#/components/schemas/Model")
     expect(JSON.stringify(modelSchema)).toContain("reasoningEfforts")
     expect(JSON.stringify(modelSchema)).not.toContain("reasoning_options")
@@ -120,12 +122,23 @@ describe("OpenAPI spec generation", () => {
     expect(schema).toContain("NoteInfo")
   })
 
-  test("includes /global/recent route with operationId global.nav.recent", async () => {
+  test("includes /global/recent route with operationId and category filter", async () => {
     const spec = await Server.openapi()
     const path = spec.paths["/global/recent"]
     expect(path).toBeDefined()
     expect(path!.get).toBeDefined()
     expect(path!.get!.operationId).toBe("global.nav.recent")
+    const parameters = path!.get!.parameters ?? []
+    expect(parameters.map((parameter) => ("name" in parameter ? parameter.name : undefined))).toContain("category")
+    const parentOnly = parameters.find((parameter) => "name" in parameter && parameter.name === "parentOnly")
+    expect(parentOnly && "schema" in parentOnly ? parentOnly.schema : undefined).toMatchObject({ type: "boolean" })
+  })
+
+  test("includes a non-secret GitHub configured route", async () => {
+    const spec = await Server.openapi()
+    const path = spec.paths["/github/configured"]
+    expect(path?.get?.operationId).toBe("github.configured")
+    expect(JSON.stringify(path?.get?.responses?.["200"])).toContain("GitHubConfiguredResponse")
   })
 
   test("includes /global/pinned route with operationId global.nav.pinned", async () => {

@@ -26,7 +26,11 @@ import { ObservabilityToolFailures } from "@/observability/tool-failures"
 import { ObservabilitySpans } from "@/observability/spans"
 import { ObservabilityContext } from "@/observability/context"
 import { SessionMemoryPressure } from "./memory-pressure"
+import { SessionMemoryIncident } from "./memory-incident"
+import { LLMTurnMemory } from "./llm-memory"
 import { SessionBounds } from "./bounds"
+import { ContextUsage } from "./context-usage"
+import { ModelLimit } from "@ericsanchezok/synergy-util/model-limit"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
@@ -806,6 +810,7 @@ export namespace SessionProcessor {
         const shouldBreak = (await Config.current()).experimental?.continue_loop_on_deny !== true
         try {
           while (true) {
+            let streamAborted = false
             try {
               input.abort.throwIfAborted()
               let currentText: MessageV2.TextPart | undefined
@@ -815,6 +820,7 @@ export namespace SessionProcessor {
                 messageID: input.assistantMessage.id,
               })
               const stream = await LLM.stream(streamInput)
+              streamInput.memoryTurn?.streamStarted()
               SessionMemoryPressure.probe("processor.after_llm_stream", {
                 sessionID: input.sessionID,
                 messageID: input.assistantMessage.id,
@@ -926,6 +932,7 @@ export namespace SessionProcessor {
                         })
                       }
                       if (value.text) {
+                        streamInput.memoryTurn?.addOutputChars(value.text.length)
                         ObservabilityMetrics.record({
                           name: "llm.stream.output_chars",
                           value: value.text.length,
@@ -1012,6 +1019,7 @@ export namespace SessionProcessor {
                       generatingBytes[value.id] = receivedBytes
                       const raw = prevRaw + value.delta
                       generatingAccum[value.id] = raw
+                      streamInput.memoryTurn?.observeToolRawChars(value.id, raw.length)
                       // Throttle generating updates: emit when enough new content has accumulated
                       if (raw.length - (prevRaw.length || 0) < 50 && raw.length % 128 !== 0) break
                       const part = await Session.updatePart({
@@ -1033,6 +1041,7 @@ export namespace SessionProcessor {
                       if (!match) break
                       const raw = generatingAccum[value.id]
                       if (!raw) break
+                      streamInput.memoryTurn?.observeToolRawChars(value.id, raw.length)
                       // Final flush: push the complete accumulated raw even if it didn't hit the throttle
                       const part = await Session.updatePart({
                         ...match,
@@ -1067,6 +1076,10 @@ export namespace SessionProcessor {
                         pendingState?.metadata,
                       )
                       const toolInput = SessionToolInput.normalize(value.input)
+                      streamInput.memoryTurn?.observeToolRawChars(
+                        value.toolCallId,
+                        LLMTurnMemory.estimateChars(value.input, SessionBounds.TOOL_INPUT_MAX_BYTES),
+                      )
                       if (SessionBounds.toolInputByteLength(toolInput) > SessionBounds.TOOL_INPUT_MAX_BYTES) {
                         const error = SessionBounds.toolInputExceededMessage()
                         const part = await Session.updatePart({
@@ -1255,6 +1268,12 @@ export namespace SessionProcessor {
                       input.assistantMessage.finish = value.finishReason
                       input.assistantMessage.cost += usage.cost
                       input.assistantMessage.tokens = usage.tokens
+                      if (hasProviderInputUsage(value.usage) && stream.contextUsageDraft) {
+                        input.assistantMessage.contextUsage = ContextUsage.reconcile(
+                          stream.contextUsageDraft,
+                          ModelLimit.actualInput(usage.tokens),
+                        )
+                      }
                       await Session.updatePart({
                         id: Identifier.ascending("part"),
                         reason: value.finishReason,
@@ -1314,6 +1333,7 @@ export namespace SessionProcessor {
                         })
                       }
                       if (value.text) {
+                        streamInput.memoryTurn?.addOutputChars(value.text.length)
                         ObservabilityMetrics.record({
                           name: "llm.stream.output_chars",
                           value: value.text.length,
@@ -1359,6 +1379,7 @@ export namespace SessionProcessor {
                       break
 
                     case "abort":
+                      streamAborted = true
                       break
 
                     default:
@@ -1376,6 +1397,7 @@ export namespace SessionProcessor {
                 throw error
               } finally {
                 await ownedStream.dispose()
+                streamInput.memoryTurn?.streamDisposed()
                 flushChunkMetrics()
                 currentText = undefined
                 reasoningMap = {}
@@ -1386,6 +1408,15 @@ export namespace SessionProcessor {
               }
             } catch (e: any) {
               fastAbort = isFastAbort(input.abort, e)
+              if (SessionMemoryIncident.isOutOfMemory(e)) {
+                await SessionMemoryIncident.capture({
+                  error: e,
+                  sessionID: input.sessionID,
+                  messageID: input.assistantMessage.id,
+                }).catch((incidentError) => {
+                  log.warn("failed to capture OOM incident", { error: incidentError })
+                })
+              }
               log.error("process", {
                 error: e,
               })
@@ -1484,6 +1515,13 @@ export namespace SessionProcessor {
               sessionID: input.sessionID,
               messageID: input.assistantMessage.id,
             })
+            if (fastAbort || streamAborted || input.assistantMessage.error) {
+              const incompleteStreamingParts = parts.filter(
+                (part): part is MessageV2.TextPart | MessageV2.ReasoningPart =>
+                  (part.type === "text" || part.type === "reasoning") && !!part.text && !part.time?.end,
+              )
+              await Promise.all(incompleteStreamingParts.map((part) => Session.updatePart(part)))
+            }
             if (!fastAbort) {
               await waitForOutcomesAndSettle(parts)
               await waitForTrackedSettlements()
@@ -1542,5 +1580,10 @@ export namespace SessionProcessor {
       },
     }
     return result
+  }
+  function hasProviderInputUsage(usage: unknown): boolean {
+    if (!usage || typeof usage !== "object") return false
+    const inputTokens = (usage as { inputTokens?: unknown }).inputTokens
+    return typeof inputTokens === "number" && Number.isFinite(inputTokens)
   }
 }

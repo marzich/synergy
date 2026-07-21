@@ -67,7 +67,7 @@ See [Development reference](docs/reference/development.md) for modes, isolated i
 - Add OpenAPI metadata to server routes and run `./script/generate.ts` after route or API-schema changes.
 - Use `createSynergyClient()` and generated methods for internal Web APIs. Reserve raw browser transports for streams, external URLs, browser file/blob flows, and platform-provided fetch injection.
 - Preserve auth, Scope/directory parameters, error semantics, and asset URL formats when changing a client call.
-- Product color utilities must follow [Frontend themes and color](docs/reference/frontend-theming.md) and resolve through the canonical token catalog in `packages/ui/src/theme/tokens.ts`. Do not add Tailwind palette colors, literal color utilities, or component-local light/dark palettes. Change seeds or typed overrides in a structured theme, run the theme generator, and never hand-edit generated fallback or Tailwind color files. Plugin themes use the same validated JSON contract rather than arbitrary CSS overrides.
+- Product color utilities must follow [Frontend themes and color](docs/reference/frontend-theming.md) and resolve through the public canonical contract in `packages/plugin/src/theme`; `packages/ui/src/theme` is the compatibility/runtime application boundary. Do not add Tailwind palette colors, literal color utilities, or component-local light/dark palettes. Change seeds or typed overrides in a structured theme, run the theme generator, and never hand-edit generated Web/Desktop fallbacks or Tailwind color files. Plugin Kit and the host use the same validated Theme JSON parser rather than arbitrary CSS overrides.
 
 ### Configuration and credentials
 
@@ -96,7 +96,7 @@ Do not create compatibility paths that violate those contracts. In particular:
 
 - Load `add-tool`, `add-agent`, or `add-cli-command` for their complete implementation and verification workflows.
 - A first-party tool requires backend registration, taxonomy, and all Web presentation/classifier registrations described by `add-tool`.
-- Built-in primary agents are `synergy` and `synergy-max`; visibility masks and delegation groups define each subagent catalog. Hidden BlueprintLoop and Light Loop reviewers remain host-selected.
+- Built-in primary agents are `synergy` and `synergy-max`; visibility masks and delegation groups define each subagent catalog. BlueprintLoop and Light Loop reviewers remain host-selected, while their Cortex tasks are visible in the execution session's Subagent Dock.
 - Plugins use the public definition, generated manifest, capability-gated Host Services, process runtime, operation/event/hook, approval, and trusted UI contracts in [Plugin documentation](docs/plugins/README.md). Do not import private runtime modules into plugins.
 
 ## Testing and Quality
@@ -110,6 +110,7 @@ cd packages/synergy
 bun test test/<domain>/<file>.test.ts
 bun run test:changed
 bun test
+bun run test:ci
 bun run test:coverage
 ```
 

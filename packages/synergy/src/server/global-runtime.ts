@@ -1,5 +1,3 @@
-import { ClarusRuntime } from "@/clarus/runtime"
-import { ClarusRestClient } from "@/clarus/rest-client"
 import { Agenda, AgendaBootstrap } from "@/agenda"
 import { ChannelOutbound } from "@/channel/outbound"
 import { registerProviders } from "@/channel/provider"
@@ -7,6 +5,8 @@ import { Channel } from "@/channel"
 import { Config } from "@/config/config"
 import { CortexConcurrency } from "@/cortex/concurrency"
 import { HolosRuntime } from "@/holos/runtime"
+import { GitHubRuntime } from "@/github/runtime"
+import { GitHubPollRuntime } from "@/github/poll-runtime"
 import { PluginMarketplaceRegistry } from "@/plugin/marketplace-registry"
 import { MCP } from "@/mcp"
 import { Plugin } from "@/plugin"
@@ -34,28 +34,16 @@ export namespace GlobalRuntime {
           await SessionRecovery.reconcileRuntimeState({ scopeID: Scope.home().id, apply: true }).catch((error) => {
             log.warn("session runtime recovery failed", { scopeID: Scope.home().id, error })
           })
-          await startChannels(config)
           await HolosRuntime.init()
-          const clarusApiUrl = config.clarus?.apiUrl ?? config.holos?.apiUrl ?? "https://api.holosai.io"
-          const clarusClient = new ClarusRestClient({
-            apiUrl: clarusApiUrl,
-            credentials: async () => {
-              const { HolosAuth } = await import("@/holos/auth")
-              const cred = await HolosAuth.getStoredCredential()
-              if (!cred) return undefined
-              return { agentId: cred.agentId, agentSecret: cred.agentSecret }
-            },
-          })
-          ClarusRuntime.configureRest(clarusClient)
-          await ClarusRuntime.init().catch((error) => {
-            log.warn("Clarus init failed", { error })
-          })
+          await startChannels(config)
           FileWatcher.init()
           MCP.ensureStarted()
           PluginMarketplaceRegistry.prefetchRegistry()
           await SessionInvoke.resumePending()
           await Agenda.start()
           await AgendaBootstrap.seed()
+          await GitHubRuntime.start(config.github)
+          await GitHubPollRuntime.start(config.github)
           log.info("started")
         },
       })
@@ -64,9 +52,9 @@ export namespace GlobalRuntime {
   }
 
   export async function stop() {
+    await GitHubPollRuntime.stop()
+    await GitHubRuntime.stop()
     Agenda.stop()
-    ClarusRuntime.shutdown()
-    ClarusRuntime.configureRest(null)
     await Promise.all([
       ScopeContext.provide({
         scope: Scope.home(),

@@ -24,9 +24,10 @@ export const BlueprintContinuationPolicy: ContinuationKernel.Policy = {
       category: "general",
       parentSessionID: loop.sessionID,
       parentMessageID: loop.stopRequest.requesterMessageID,
+      tools: loop.auditTools,
       reuseInterrupted: true,
       notifyParentOnComplete: false,
-      visibility: "hidden",
+      visibility: "visible",
     })
     await Session.update(task.sessionID, (draft) => {
       draft.blueprint = { loopID: loop.id, loopRole: "audit" }
